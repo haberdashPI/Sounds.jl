@@ -60,7 +60,7 @@ save(file::Union{AbstractString,IO},sound::Sound) = save(file,SampleBuf(sound))
 
 SampledSignals.SampleBuf(x::Sound) =
   SampledSignals.SampleBuf(x.data,float(samplerate(x)))
-function AxisArray.AxisArray(x::Sound)
+function AxisArrays.AxisArray(x::Sound)
   time_axis = Axis{:time}(((1:nsamples(x))-1)/samplerate(x))
   ismono(x) ? AxisArray(x,time_axis) :
     AxisArray(x,time_axis,Axis{:channel}([:left,:right]))
