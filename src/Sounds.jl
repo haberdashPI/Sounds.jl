@@ -10,7 +10,7 @@ export @>>, @>, @_
 include(joinpath(@__DIR__,"units.jl"))
 include(joinpath(@__DIR__,"sound.jl"))
 include(joinpath(@__DIR__,"samplerate.jl"))
-include(joinpath(@__DIR__,"audio.jl"))
+include(joinpath(@__DIR__,"audible.jl"))
 
 const localunits = Unitful.basefactors
 const localpromotion = Unitful.promotion
