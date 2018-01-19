@@ -2,6 +2,8 @@ module Sounds
 
 using Lazy: @>>, @>, @_
 using Unitful
+using SampledSignals
+using AxisArrays
 
 export @>>, @>, @_
 
