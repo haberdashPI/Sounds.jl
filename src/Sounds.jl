@@ -7,9 +7,9 @@ using AxisArrays
 
 export @>>, @>, @_
 
+include(joinpath(@__DIR__,"sound.jl"))
 include(joinpath(@__DIR__,"units.jl"))
 include(joinpath(@__DIR__,"samplerate.jl"))
-include(joinpath(@__DIR__,"sound.jl"))
 include(joinpath(@__DIR__,"audio.jl"))
 
 const localunits = Unitful.basefactors
