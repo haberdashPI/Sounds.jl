@@ -70,8 +70,8 @@ end
 """
     duration(x)
 
-Returns the duration of the sound. If passed as `Array`, takes a
-keyword argument `rate=samplerate(x)`.
+Returns the duration of the sound. If passed an `Array`, takes a
+keyword argument `rate=samplerate()`.
 """
 function duration(x;rate=samplerate(x))
   uconvert(s,nsamples(x) / inHz(rate))
@@ -80,13 +80,37 @@ end
 rtype{R}(x::Sound{R}) = R
 length(x::Sound) = length(x.data)
 
+"""
+    asstereo(x)
+
+Returns a stereo version of a sound (wether it is stereo or monaural).
+"""
 asstereo(x::Sound{R,T,1}) where {R,T} = hcat(x.data,x.data)
 asstereo(x::Sound{R,T,2}) where {R,T} =
   size(x,2) == 1 ? hcat(x.data,x.data) : x.data
+
+"""
+    asmono(x)
+
+Returns a monaural version of a sound (whether it is stereo or manaural).
+"""
 asmono(x::Sound{R,T,1}) where {R,T} = x.data
-asmono(x::Sound{R,T,2}) where {R,T} = squeeze(x.data,2)
+asmono(x::Sound{R,T,2}) where {R,T} =
+  size(x,2) == 1 ? squeeze(x,2) : squeeze(mix(x[:left],x[:right]),2)
+
+"""
+    ismono(x)
+
+True if the sound is monaural.
+"""
 ismono(x::Sound{R,T,1}) = true
 ismono(x::Sound{R,T,2}) = nchannels(x) == 1
+
+"""
+    isstereo
+
+True if the sound is stereo.
+"""
 isstereo(x::Sound) = !ismono(x)
 
 vcat(xs::Sound...) = error("Sample rates differ, fix with `resample`.")
