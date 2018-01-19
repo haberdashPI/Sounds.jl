@@ -5,4 +5,4 @@ Unitful
 FileIO
 Lazy
 SampledSignals
-AxisArray
+AxisArrays
