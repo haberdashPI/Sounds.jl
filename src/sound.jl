@@ -30,7 +30,7 @@ struct Sound{R,T,N} <: AbstractArray{T,N}
     end
 
     R = ustrip(inHz(rate))
-    new(x)
+    new{R,T,N}(x)
   end
 end
 convert(::Type{Sound{R,T,N}},x) where {R,T,N} =
