@@ -130,12 +130,12 @@ function vcat(xs::Sound{R,T}...) where {R,T}
   end
 end
 
-function *(x::Number,y::Sound)
+function Base.:(*)(x::Number,y::Sound)
   z = similar(y)
   z .= x .* y
 end
 
-function *(y::Sound,x::Number)
+function Base.:(*)(y::Sound,x::Number)
   z = similar(y)
   z .= x .* y
 end
