@@ -8,7 +8,7 @@ export samplerate, set_default_samplerate!, audible, mix, mult, silence,
 
 """
     audible(fn,len,asseconds=true;rate=samplerate(),eltype=Float64,
-            offset=0s,container_type=AxisArray)
+            offset=0s)
 
 Creates monaural sound where `fn(t)` returns the amplitudes for a given `Range`
 of time points, with resulting values ranging between -1 and 1 as an iterable
