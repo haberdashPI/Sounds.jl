@@ -8,6 +8,8 @@ import FileIO: save
 import DSP: resample
 import LibSndFile
 
+import Base: setindex!, getindex, size, similar
+
 import Distributions: nsamples
 
 export sound, playable, duration, nchannels, nsamples, save, samplerate, length,
@@ -103,8 +105,8 @@ asmono(x::Sound{R,T,2}) where {R,T} =
 
 True if the sound is monaural.
 """
-ismono(x::Sound{R,T,1}) = true
-ismono(x::Sound{R,T,2}) = nchannels(x) == 1
+ismono(x::Sound{R,T,1}) where {R,T} = true
+ismono(x::Sound{R,T,2}) where {R,T} = nchannels(x) == 1
 
 """
     isstereo
@@ -172,7 +174,7 @@ return the same value.
 """
 left(sound) = size(sound,2) == 1 ? sound : sound[:,1]
 left(sound::AxisArray) =
-    size(data,2) == 1 ? sound : sound[Axis{:channel}(:left)]]
+    size(data,2) == 1 ? sound : sound[Axis{:channel}(:left)]
 
 """
     right(sound)
@@ -182,7 +184,7 @@ return the same value.
 """
 right(sound) = size(sound,2) == 1 ? sound : sound[:,2]
 right(sound::AxisArray) =
-    size(data,2) == 1 ? sound : sound[Axis{:channel}(:right)]]
+    size(data,2) == 1 ? sound : sound[Axis{:channel}(:right)]
 
 # adapted from:
 # https://github.com/JuliaAudio/SampledSignals.jl/blob/0a31806c3f7d382c9aa6db901a83e1edbfac62df/src/SampleBuf.jl#L109-L139
@@ -227,18 +229,18 @@ function showchannels(io::IO, x::Sound, widthchars=80)
 end
 
 
-@inline function getindex(x::Sound,i::Int)
+@inline function Base.getindex(x::Sound,i::Int)
   @boundscheck checkbounds(x.data,i)
   @inbounds return x.data[i]
 end
 
-@inline function setindex!{R,T,S}(x::Sound{R,T},v::S,i::Int)
+@inline function Base.setindex!{R,T,S}(x::Sound{R,T},v::S,i::Int)
   @boundscheck checkbounds(x.data,i)
   @inbounds return x.data[i] = convert(T,v)
 end
 
 
-@inline function getindex(x::Sound,i::Int,j::Int)
+@inline function Base.getindex(x::Sound,i::Int,j::Int)
   @boundscheck checkbounds(x.data,i,j)
   @inbounds return x.data[i,j]
 end
@@ -266,10 +268,10 @@ function checktime(time)
   end
 end
 
-function getindex(x::Sound,js::Symbol) =
+function getindex(x::Sound,js::Symbol)
   if js == :left || (js == :right && size(x,2) == 1)
     getindex(x,:,1)
-  else js == :right
+  elseif js == :right
     getindex(x,:,2)
   else
     throw(BoundsError(x,js))
