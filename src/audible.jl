@@ -54,26 +54,17 @@ ones at the end so that the lengths of all sounds match.
 mult(xs...) = soundop((x,y) -> x .* y,xs...)
 
 function soundop(op,xs...)
-  len = maximum(map(x -> size(x,1),xs))
   channels = maximum(map(x -> size(x,2),xs))
-  y = similar(xs[1],(len,channels))
-
   rate = samplerate(xs[1])
 
-  for i in 1:size(y,1)
-    used = false
-    for j in 1:length(xs)
-      @assert(samplerate(xs[j]) == rate,
-              "Expected all sounds to have the same samplerate.")
-      if i <= size(xs[j],1)
-        if !used
-          used = true
-          @inbounds y[i,:] .= xs[j][i,:]
-        else
-          @inbounds y[i,:] .= op(y[i,:],xs[j][i,:])
-        end
-      end
-    end
+  @assert(all(samplerate.(xs) == rate),
+          "Expected all sounds to have the same samplerate.")
+
+  sorted = sort(xs,by=x -> length(x))
+  y = copy(sorted[1])
+
+  for x in sorted[2:end]
+    y .= op.(y,x)
   end
 
   y
