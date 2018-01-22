@@ -7,8 +7,10 @@ Return the current default sampling rate in units of Hz when construction
 sounds. Also throws a warning to avoid pitfalls with using a global
 value. Defaults to 44100 Hz.
 """
-samplerate() = warn("Using default sample rate of $(default_sample_rate[])") &&
+function samplerate()
+  warn("Using default sample rate of $(default_sample_rate[])")
   default_sample_rate[]
+end
 
 """
     samplerate(::Array)
