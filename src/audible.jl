@@ -40,7 +40,7 @@ mix several sounds together so that they play at the same time.
 Unlike normal addition, this acts as if each sound is padded with
 zeros at the end so that the lengths of all sounds match.
 """
-mix(xs...) = soundop((x,y) -> x .+ y,xs...)
+mix(xs...) = soundop(+,xs...)
 
 """
     mult(x,y,...)
@@ -51,22 +51,22 @@ amplitude envelope.
 Unlike normal multiplication, this acts as if each sound is padded with
 ones at the end so that the lengths of all sounds match.
 """
-mult(xs...) = soundop((x,y) -> x .* y,xs...)
+mult(xs...) = soundop(*,xs...)
 
 function soundop(op,xs...)
-  channels = maximum(map(x -> size(x,2),xs))
+  channels = maximum(nchannels.(xs))
+  len = maximum(nsamples.(xs))
   rate = samplerate(xs[1])
-
-  # TODO: convert to stereo if needed
 
   @assert(all(samplerate.(xs) .== rate),
           "Sounds had unmatched samplerates $(samplerate.(xs)).")
 
-  sorted = sort(xs,by=x -> length(x))
-  y = copy(sorted[1])
+  sorted = sort(collect(xs),by=nsamples,rev=true)
+  y = similar(sorted[1],(len,channels))
+  y .= sorted[1]
 
   for x in sorted[2:end]
-    y .= op.(y,x)
+    y[1:nsamples(x),:] .= op.(y[1:nsamples(x),:],x[:,:])
   end
 
   y
