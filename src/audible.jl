@@ -57,7 +57,9 @@ function soundop(op,xs...)
   channels = maximum(map(x -> size(x,2),xs))
   rate = samplerate(xs[1])
 
-  @assert(all(samplerate.(xs) == rate),
+  # TODO: convert to stereo if needed
+
+  @assert(all(samplerate.(xs) .== rate),
           "Sounds had unmatched samplerates $(samplerate.(xs)).")
 
   sorted = sort(xs,by=x -> length(x))
@@ -342,15 +344,12 @@ Create a stereo sound from two monaural sounds.
 """
 function leftright(x,y)
   @assert(samplerate(x) == samplerate(y),
-          "Expected sounds to have the same sampling rate.")
-  if size(x.data,2) == size(y.data,2) == 1
-    mix(hcat(x,silence(nsamples(x)*samples)),
-        hcat(silence(nsamples(y)*samples),y))
-  else
-    error("Expected two monaural sounds.")
-  end
-end
+          "Sounds had unmatched samplerates $(samplerate.((x,y))).")
+  @assert size(x,2) == size(y,2) == 1 "Expected two monaural sounds."
 
+  mix(hcat(x,silence(nsamples(x)*samples)),
+      hcat(silence(nsamples(y)*samples),y))
+end
 
 """
     resample(x::Sound,new_rate)
