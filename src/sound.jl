@@ -28,7 +28,7 @@ struct Sound{R,T,N} <: AbstractArray{T,N}
   Assumes 1 is the loudest and -1 the softest. The array should be 1d for mono
   signals, or an array of size (N,2) for stereo sounds.
   """
-  function Sound{T,N}(x::Array{T,N};rate=samplerate()) where {T <: Number,N}
+  function Sound(x::Array{T,N};rate=samplerate()) where {T,N}
     if N ∉ [1,2]
       error("Array must have 1 or 2 dimensions to be converted to a sound.")
     end
@@ -37,6 +37,7 @@ struct Sound{R,T,N} <: AbstractArray{T,N}
     new{R,T,N}(x)
   end
 end
+
 convert(::Type{Sound{R,T,N}},x) where {R,T,N} =
   Sound{R,T,N}(convert(Array{T,N},x))
 function convert(::Type{Sound{R,T,N}},x::Sound{R,S,N}) where {R,T,S,N}
@@ -412,6 +413,6 @@ function similar(x::Sound{R,T,N},::Type{S},dims::NTuple{M,Int}) where {R,T,S,N,M
          "Sounds cannot be created from any other array dimensions.")
     similar(x.data,S,dims)
   else
-    Sound{R,S,M}(similar(x.data,S,dims))
+    Sound(similar(x.data,S,dims),rate=samplerate(x))
   end
 end
