@@ -58,7 +58,7 @@ function soundop(op,xs...)
   rate = samplerate(xs[1])
 
   @assert(all(samplerate.(xs) == rate),
-          "Expected all sounds to have the same samplerate.")
+          "Sounds had unmatched samplerates $(samplerate.(xs)).")
 
   sorted = sort(xs,by=x -> length(x))
   y = copy(sorted[1])
