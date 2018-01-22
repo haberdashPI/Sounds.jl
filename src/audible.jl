@@ -4,7 +4,7 @@ import SampledSignals: samplerate
 
 export samplerate, set_default_samplerate!, audible, mix, mult, silence,
   envelope, noise, highpass, lowpass, bandpass, bandstop, tone, ramp,
-  harmonic_complex, amplify rampon, rampoff, fadeto, irn, samplerate
+  harmonic_complex, amplify, rampon, rampoff, fadeto, irn, samplerate
 
 """
     audible(fn,len,asseconds=true;rate=samplerate(),eltype=Float64,
