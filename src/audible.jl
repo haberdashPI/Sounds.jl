@@ -43,7 +43,7 @@ mix several sounds together so that they play at the same time.
 Unlike normal addition, this acts as if each sound is padded with
 zeros at the end so that the lengths of all sounds match.
 """
-mix{R}(xs...) = soundop((x,y) -> x .+ y,xs...)
+mix(xs...) = soundop((x,y) -> x .+ y,xs...)
 
 """
     mult(x,y,...)
@@ -54,7 +54,7 @@ amplitude envelope.
 Unlike normal multiplication, this acts as if each sound is padded with
 ones at the end so that the lengths of all sounds match.
 """
-mult{R}(xs...) = soundop((x,y) -> x .* y,xs...)
+mult(xs...) = soundop((x,y) -> x .* y,xs...)
 
 function soundop(op,xs...)
   len = maximum(map(x -> size(x,1),xs))
@@ -352,7 +352,7 @@ normalize(x) = x ./ sqrt(mean(x.^2))
 
 Create a stereo sound from two monaural sounds.
 """
-function leftright(x,y) where {R,T}
+function leftright(x,y)
   @assert(samplerate(x) == samplerate(y),
           "Expected sounds to have the same sampling rate.")
   if size(x.data,2) == size(y.data,2) == 1
