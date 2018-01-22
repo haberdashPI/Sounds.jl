@@ -347,8 +347,12 @@ function leftright(x,y)
           "Sounds had unmatched samplerates $(samplerate.((x,y))).")
   @assert size(x,2) == size(y,2) == 1 "Expected two monaural sounds."
 
-  mix(hcat(x,silence(nsamples(x)*samples)),
-      hcat(silence(nsamples(y)*samples),y))
+  len = maximum(nsamples.((x,y)))
+  z = similar(x,(len,2))
+  z .= zero(x[1])
+  z[1:nsamples(x),:left] = x
+  z[1:nsamples(y),:left] = y
+  z
 end
 
 """
