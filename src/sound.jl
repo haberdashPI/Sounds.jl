@@ -38,8 +38,6 @@ struct Sound{R,T,N} <: AbstractArray{T,N}
   end
 end
 
-Base.convert(::Type{Sound{R,T,N}},x) where {R,T,N} =
-  Sound{R,T,N}(convert(Array{T,N},x))
 function Base.convert(::Type{Sound{R,T,N}},x::Sound{R,S,N}) where {R,T,S,N}
   Sound{R,T,N}(convert(Array{T,N},x.data))
 end
