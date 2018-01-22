@@ -31,7 +31,7 @@ struct Sound{R,T,N} <: AbstractArray{T,N}
       error("Array must have 1 or 2 dimensions to be converted to a sound.")
     end
 
-    R = ustrip(inHz(rate))
+    R = floor(Int,ustrip(inHz(rate)))
     new{R,T,N}(x)
   end
 end

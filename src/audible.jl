@@ -28,11 +28,8 @@ function audible(fn::Function,len=Inf,asseconds=true;
 
   n = ustrip(insamples(offset,rate_Hz))
   m = ustrip(insamples(len,rate_Hz))
-
   R = floor(Int,ustrip(rate_Hz))
-
-  times = ((n:m)-1)/R
-  Sound{R,eltype,1}(!asseconds ? fn(n:m) : fn(times),times)
+  Sound{eltype,1}(!asseconds ? fn(n:m) : fn(((n:m)-1)/R),rate=rate)
 end
 
 """
