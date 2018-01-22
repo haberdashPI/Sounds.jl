@@ -8,7 +8,7 @@ import FileIO: save
 import DSP: resample
 import LibSndFile
 
-import Base: setindex!, getindex, size, similar
+import Base: setindex!, getindex
 
 import Distributions: nsamples
 
@@ -38,12 +38,12 @@ struct Sound{R,T,N} <: AbstractArray{T,N}
   end
 end
 
-convert(::Type{Sound{R,T,N}},x) where {R,T,N} =
+Base.convert(::Type{Sound{R,T,N}},x) where {R,T,N} =
   Sound{R,T,N}(convert(Array{T,N},x))
-function convert(::Type{Sound{R,T,N}},x::Sound{R,S,N}) where {R,T,S,N}
+function Base.convert(::Type{Sound{R,T,N}},x::Sound{R,S,N}) where {R,T,S,N}
   Sound{R,T,N}(convert(Array{T,N},x.data))
 end
-function convert{R,Q,T,S}(::Type{Sound{R,T}},x::Sound{Q,S})
+function Base.convert{R,Q,T,S}(::Type{Sound{R,T}},x::Sound{Q,S})
   error("Cannot convert a sound with sampling rate $(Q*Hz) to a sound with ",
         "sampling rate $(R*Hz). Use `resample` to change the sampling rate.")
 end
@@ -83,7 +83,7 @@ function duration(x;rate=samplerate(x))
 end
 
 rtype{R}(x::Sound{R}) = R
-length(x::Sound) = length(x.data)
+Base.length(x::Sound) = length(x.data)
 
 """
     asstereo(x)
@@ -166,7 +166,7 @@ The number of samples is not always the same as the `length` of the sound.
 Stereo sounds have a length of 2 x nsamples(sound).
 """
 nsamples(x::Sound) = size(x.data,1)
-size(x::Sound) = size(x.data)
+Base.size(x::Sound) = size(x.data)
 Base.IndexStyle(::Type{Sound}) = IndexCartesian()
 
 """
@@ -407,7 +407,8 @@ end
   vals
 end
 
-function similar(x::Sound{R,T,N},::Type{S},dims::NTuple{M,Int}) where {R,T,S,N,M}
+function Base.similar(x::Sound{R,T,N},::Type{S},
+                      dims::NTuple{M,Int}) where {R,T,S,N,M}
   if M ∉ [1,2] || (M == 2 && dims[2] ∉ [1,2])
     warn("Sounds must have 1 or 2 dimensions and 1 or 2 channels."*
          "Sounds cannot be created from any other array dimensions.")
