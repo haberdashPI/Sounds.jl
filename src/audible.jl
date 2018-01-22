@@ -252,12 +252,12 @@ Ramps prevent clicks at the start and end of sounds.
 function ramp(x,len=5ms)
   ramp_n = insamples(len,samplerate(x))
 	if nsamples(x) < 2ramp_n
-    error("Cannot apply two $(rounded_time(len,R)) ramps to ",
-          "$(rounded_time(duration(x),R)) sound.")
+    error("Cannot apply two $(rounded_time(len,samplerate(x))) ramps to ",
+          "$(rounded_time(duration(x),samplerate(x))) sound.")
   end
 
   n = nsamples(x)
-	r = audible(duration(x),false,rate=R*Hz) do t
+	r = audible(duration(x),false,rate=samplerate(x)) do t
     ifelse.(t .< ramp_n,
       -0.5.*cos.(π.*t./ramp_n).+0.5,
     ifelse.(t .< n .- ramp_n,
@@ -275,8 +275,8 @@ Applies a half consine ramp to start of the sound.
 function rampon(x,len=5ms)
   ramp_n = insamples(len,samplerate(x))
 	if nsamples(x) < ramp_n
-    error("Cannot apply a $(rounded_time(len,R)) ramp to ",
-          "$(rounded_time(duration(x),R)) sound.")
+    error("Cannot apply a $(rounded_time(len,samplerate(x))) ramp to ",
+          "$(rounded_time(duration(x),samplerate(x))) sound.")
   end
 
 	r = audible(ramp_n*samples,false,rate=samplerate(x)) do t

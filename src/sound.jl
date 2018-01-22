@@ -16,6 +16,8 @@ export sound, playable, duration, nchannels, nsamples, save, samplerate, length,
   samples, vcat, leftright, similar, left, right, resample,
   audiofn, .., ends, data
 
+# TODO: use N to denote the number of channels, and
+# make the sound always have two dimensions
 struct Sound{R,T,N} <: AbstractArray{T,N}
   data::Array{T,N}
   """
@@ -188,7 +190,9 @@ right(sound::AxisArray) =
 
 # adapted from:
 # https://github.com/JuliaAudio/SampledSignals.jl/blob/0a31806c3f7d382c9aa6db901a83e1edbfac62df/src/SampleBuf.jl#L109-L139
-rounded_time(x,R) = round(ustrip(inseconds(x,R)),ceil(Int,log(10,R)))*s
+rounded_time(x,rate::Quantity) = rounded_time(x,floor(Int,ustrip(inHz(R))))
+rounded_time(x,rate::Int) = round(ustrip(inseconds(x,R)),ceil(Int,log(10,)))*s
+
 function show(io::IO, x::Sound{R}) where R
   seconds = rounded_time(duration(x),R)
   typ = if eltype(x) == Q0f15
