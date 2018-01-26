@@ -28,7 +28,7 @@ function audible(fn::Function,len=Inf,asseconds=true;
   n = ustrip(insamples(offset,rate_Hz))
   m = ustrip(insamples(len,rate_Hz))
   R = floor(Int,ustrip(rate_Hz))
-  Sound(!asseconds ? fn(n:m) : fn(((n:m)-1)/R),rate=rate)
+  Sound(!asseconds ? fn(n+1:m) : fn(((n:m-1)-1)/R),rate=rate)
 end
 
 """
@@ -78,7 +78,7 @@ end
 Creates period of silence of the given length (in seconds).
 """
 function silence(length;rate=samplerate())
-  audible(t -> zeros(t),length,false,rate=rate)
+  audible(t -> fill(0.0,size(t)),length,false,rate=rate)
 end
 
 """
@@ -153,6 +153,7 @@ function harmonic_complex(f0,harmonics,amps,len=Inf;
                           phases=zeros(length(harmonics)))
   cycle = complex_cycle(inHz(f0),harmonics,amps,
                         inHz(Int,rate),phases)
+
   N = size(cycle,1)
   audible(i -> cycle[(i.-1) .% N + 1],len,false,rate=rate)
 end
@@ -231,7 +232,7 @@ end
 function filter_helper(sound,low,high,kind,order)
   ftype = buildfilt(ustrip(samplerate(sound)),low,high,kind)
   f = digitalfilter(ftype,Butterworth(order))
-  Sound(DSP.filt(f,sound),samplerate(sound))
+  Sound(DSP.filt(f,sound),rate=samplerate(sound))
 end
 
 """
@@ -249,11 +250,11 @@ function ramp(x,len=5ms)
   end
 
   n = nsamples(x)
-	r = audible(duration(x),false,rate=samplerate(x)) do t
+	r = audible(n*samples,false,rate=samplerate(x)) do t
     ifelse.(t .< ramp_n,
       -0.5.*cos.(π.*t./ramp_n).+0.5,
     ifelse.(t .< n .- ramp_n,
-      1,
+      1.0,
       -0.5.*cos.(π.*(t .- n .+ ramp_n)./ramp_n.+π).+0.5))
 	end
 	mult(x,r)
@@ -278,13 +279,13 @@ function rampon(x,len=5ms)
 end
 
 """
-    rampoff(sound,[len=5ms],[after=len])
+    rampoff(sound,[len=5ms])
 
 Applies a half consine ramp to the end of the sound.
 """
 
 function rampoff(x,len=5ms)
-  len = insamples(len,samplerate(x))
+  len_s = insamples(len,samplerate(x))
   after = nsamples(x)
 
   R = ustrip(samplerate(x))
@@ -303,7 +304,7 @@ function rampoff(x,len=5ms)
 	r = audible(after*samples,false) do t
     ifelse.(t .< rampstart,1,-0.5.*cos.(π.*(t.-rampstart)./len_s.+π).+0.5)
 	end
-	mult(limit(x,after),r)
+	mult(x,r)
 end
 
 """
@@ -316,7 +317,7 @@ function fadeto(a,b,transition=50ms)
   @assert(samplerate(a) == samplerate(b),
           "Sounds must have the same sample rate.")
   mix(rampoff(a,transition),
-      [silence(duration(a) - transition); rampon(b,transition)])
+      [silence(duration(a) - transition,rate=samplerate(a)); rampon(b,transition)])
 end
 
 """
@@ -326,7 +327,7 @@ Amplify (positive) or attenuate (negative) the sound by a given number of
 decibels
 
 """
-amplify(x,dB) = 10^(dB/20) .* x
+amplify(x,dB) = x * (10^(dB/20))
 
 """
     normalize(x)

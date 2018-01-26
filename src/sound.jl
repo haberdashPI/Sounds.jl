@@ -11,9 +11,11 @@ import Base: setindex!, getindex
 
 import Distributions: nsamples
 
+import SampledSignals: SampleBuf
+
 export sound, playable, duration, nchannels, nsamples, save, samplerate, length,
-  samples, vcat, leftright, similar, left, right, resample,
-  audiofn, .., ends, data
+  samples, leftright, similar, left, right, resample,
+  audiofn, .., ends, data, Sound
 
 # TODO: instead of N, use C to denote the number of channels, and
 # make the sound always have two dimensions
@@ -44,7 +46,7 @@ end
 function Base.convert(::Type{Sound{R,T,N}},x::Array{T,N}) where {R,T,N}
   Sound(x,rate=R*Hz)
 end
-function Base.convert(::Type{Sound{R,T,N}},x::Sound{R,S,N}) where {R,T,S,N}
+function Base.convert(::Type{Sound{R,T}},x::Sound{R,S,N}) where {R,T,S,N}
   Sound{R,T,N}(convert(Array{T,N},x.data))
 end
 function Base.convert{R,Q,T,S}(::Type{Sound{R,T}},x::Sound{Q,S})
@@ -65,10 +67,33 @@ Sound(file::File) = Sound(load(file))
 Sound(file::String) = Sound(load(file))
 Sound(stream::IOStream) = Sound(load(stream))
 
+"""
+    Sound(x::AbstractArray;rate=samplerate(x))
+
+Converts any abstract array into a sound. Copies the the data.
+
+Also see [`samplerate`](@ref).
+"""
+Sound(x::AbstractArray;rate=samplerate(x)) = Sound(collect(x),rate=rate)
+
+"""
+    Sound(x::SampledSignals.SampleBuf)
+
+Convert `SampleBuf` to `Sound` object, without copying data.
+"""
+Sound(x::SampleBuf) = Sound(x.data,rate=samplerate(x)*Hz)
+
+"""
+    Sound(x::AxisArray)
+
+Convert `AxisArray` to `Sound` object. Avoids copying data when possible
+(e.g. when underlying data is an `Array` object).
+"""
+Sound(x::AxisArray) = Sound(x.data,rate=samplerate(x))
+
 save(file::Union{AbstractString,IO},sound::Sound) = save(file,SampleBuf(sound))
 
-SampleBuf(x::Sound) =
-  SampledSignals.SampleBuf(x.data,float(samplerate(x)))
+SampleBuf(x::Sound) = SampleBuf(x.data,float(ustrip(samplerate(x))))
 function AxisArray(x::Sound)
   time_axis = Axis{:time}(((1:nsamples(x))-1)/samplerate(x))
   ismono(x) ? AxisArray(x,time_axis) :
@@ -122,18 +147,18 @@ True if the sound is stereo.
 """
 isstereo(x::Sound) = !ismono(x)
 
-vcat(xs::Sound...) = error("Sample rates differ, fix with `resample`.")
-function vcat(xs::Sound{R}...) where R
+Base.vcat(xs::Sound...) = error("Sample rates differ, fix with `resample`.")
+function Base.vcat(xs::Sound{R}...) where R
   T = promote_type(map(eltype,xs)...)
-  vcat((map(el -> convert(T,el),x) for x in xs)...)
+  Base.vcat((map(el -> convert(T,el),x) for x in xs)...)
 end
-vcat(xs::Sound{R,T,1}...) where {R,T} =
-    Sound{R,T,1}(vcat(map(x -> x.data,xs)...))
-function vcat(xs::Sound{R,T}...) where {R,T}
+Base.vcat(xs::Sound{R,T,1}...) where {R,T} =
+    Sound{R,T,1}(Base.vcat(map(x -> x.data,xs)...))
+function Base.vcat(xs::Sound{R,T}...) where {R,T}
   if any(!ismono,xs)
-    Sound{R,T,2}(vcat(map(asstereo,xs)...))
+    Sound{R,T,2}(Base.vcat(map(asstereo,xs)...))
   else
-    Sound{R,T,1}(vcat(map(asmono,xs)...))
+    Sound{R,T,1}(Base.vcat(map(asmono,xs)...))
   end
 end
 
@@ -312,17 +337,18 @@ const Index = Union{Integer,Range,AbstractVector,Colon}
 @inline function getindex(x::Sound{R,T},
                           ixs::ClosedIntervalEnd,js::I) where {R,T,I <: Index}
   @boundscheck checktime(minimum(ixs))
-  from = max(1,insamples(minimum(ixs),R*Hz))
+  from = max(1,insamples(minimum(ixs),R*Hz)+1)
   @boundscheck checkbounds(x.data,from,js)
-  @inbounds return Sound{R,T,2}(x.data[from:end,js])
+  @inbounds result = x.data[from:end,js]
+  return Sound{R,T,ndims(result)}(result)
 end
 
 @inline function
-    getindex(x::Sound{R,T,N},
-             ixs::ClosedInterval{TM},js::I) where {R,T,I <: Index,N,TM <: Quantity}
+  getindex(x::Sound{R,T,N},
+           ixs::ClosedInterval{TM},js::I) where {R,T,I <: Index,N,TM <: Quantity}
   @boundscheck checktime(minimum(ixs))
-  from = max(1,insamples(minimum(ixs),R*Hz))
-  to = insamples(maximum(ixs),R*Hz)-1
+  from = max(1,insamples(minimum(ixs),R*Hz)+1)
+  to = insamples(maximum(ixs),R*Hz)
   @boundscheck checkbounds(x.data,from:to,js)
   @inbounds result = x.data[from:to,js]
   return Sound{R,T,ndims(result)}(result)
@@ -330,7 +356,7 @@ end
 
 @inline function getindex(x::Sound{R,T},ixs::ClosedIntervalEnd) where {R,T}
   @boundscheck checktime(minimum(ixs))
-  from = max(1,insamples(minimum(ixs),R*Hz))
+  from = max(1,insamples(minimum(ixs),R*Hz)+1)
   if size(x,2) == 1
     @boundscheck checkbounds(x.data,from)
     @inbounds return Sound{R,T,1}(x.data[from:end])
@@ -343,8 +369,8 @@ end
 @inline function getindex(x::Sound{R,T},
                           ixs::ClosedInterval{TM}) where {R,T,TM <: Quantity}
   @boundscheck checktime(minimum(ixs))
-  from = max(1,insamples(minimum(ixs),R*Hz))
-  to = insamples(maximum(ixs),R*Hz)-1
+  from = max(1,insamples(minimum(ixs),R*Hz)+1)
+  to = insamples(maximum(ixs),R*Hz)
   if size(x,2) == 1
     @boundscheck checkbounds(x.data,from)
     @boundscheck checkbounds(x.data,to)
@@ -362,7 +388,7 @@ end
 @inline function setindex!{R,T,I}(
   x::Sound{R,T},vals::AbstractArray,ixs::ClosedIntervalEnd,js::I)
   @boundscheck checktime(minimum(ixs))
-  from = max(1,insamples(minimum(ixs),R*Hz))
+  from = max(1,insamples(minimum(ixs),R*Hz)+1)
   @boundscheck checkbounds(x.data,from,js)
   @inbounds x.data[from:end,js] = vals
   vals
@@ -372,8 +398,8 @@ end
   x::Sound{R,T},vals::AbstractArray,
   ixs::ClosedInterval{TM},js::I) where {R,T,I,TM <: Quantity}
   @boundscheck checktime(minimum(ixs))
-  from = max(1,insamples(minimum(ixs),R*Hz))
-  to = insamples(maximum(ixs),R*Hz)-1
+  from = max(1,insamples(minimum(ixs),R*Hz)+1)
+  to = insamples(maximum(ixs),R*Hz)
   @boundscheck checkbounds(x.data,from,js)
   @boundscheck checkbounds(x.data,to,js)
   @inbounds x.data[from:to,js] = vals
@@ -383,7 +409,7 @@ end
 @inline function setindex!{R,T}(
   x::Sound{R,T},vals::AbstractArray,ixs::ClosedIntervalEnd)
     @boundscheck checktime(minimum(ixs))
-    from = max(1,insamples(minimum(ixs),R*Hz))
+    from = max(1,insamples(minimum(ixs),R*Hz)+1)
     if size(x,2) == 1
       @boundscheck checkbounds(x.data,from)
       @inbounds x.data[from:end] = vals
@@ -399,8 +425,8 @@ end
     x::Sound{R,T},vals::AbstractArray,
     ixs::ClosedInterval{TM}) where {R,T,TM <: Quantity}
   @boundscheck checktime(minimum(ixs))
-  from = max(1,insamples(minimum(ixs),R*Hz))
-  to = insamples(maximum(ixs),R*Hz)-1
+  from = max(1,insamples(minimum(ixs),R*Hz)+1)
+  to = insamples(maximum(ixs),R*Hz)
   if size(x,2) == 1
     @boundscheck checkbounds(x.data,from:to)
     @inbounds x.data[from:to] = vals

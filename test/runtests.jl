@@ -1,22 +1,17 @@
 using Sounds
 using Base.Test
 
-# TODO: figure out why display isn't working
-# TODO: figure out why we're getting an array of Real instead of Float64
-#     make a test for it
-# TODO: figure out why indexing is messed up for ends
-
 x = leftright(ramp(tone(1kHz,1s)),ramp(tone(1kHz,1s)))
 rng() = MersenneTwister(1983)
 
-show_str = "1.0 s 16 bit PCM stereo sound
+show_str = "1.0 s 64 bit floating-point stereo sound
 Sampled at 44100 Hz
 ▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆
 ▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆"
 
 @testset "Sound Indexing" begin
-  @test isapprox(duration(x[0s .. 0.5s,:]),0.5s; atol = 1/samplerate(x))
-  @test isapprox(duration(x[0.5s .. ends,:]),0.5s; atol = 1/samplerate(x))
+  @test isapprox(duration(x[0s .. 0.5s,:]),0.5s; atol = 2/samplerate(x))
+  @test isapprox(duration(x[0.5s .. ends,:]),0.5s; atol = 2/samplerate(x))
 
   @test x[:left][:right] == x[:left][:left]
 
@@ -40,13 +35,13 @@ Sampled at 44100 Hz
   @test x[22050samples .. 44100samples,:] == x[0.5s .. 1s,:]
   @test x[22050samples .. 1s,:] == x[0.5s .. 1s,:]
   @test x[22050samples .. ends,:] == x[0.5s .. ends,:]
-  @test x[0.5s .. 1s,:] == (x[0s .. 22051samples,:] = x[0.5s .. 1s,:])
+  @test x[0.5s .. 1s,:] == (x[0s .. 22050samples,:] = x[0.5s .. 1s,:])
   @test x[0.5s .. ends,:] == (x[22050samples .. ends,:] = x[0.5s .. ends,:])
 
   @test x[22050samples .. 44100samples] == x[0.5s .. 1s]
   @test x[22050samples .. 1s] == x[0.5s .. 1s]
   @test x[22050samples .. ends] == x[0.5s .. ends]
-  @test x[0.5s .. 1s] == (x[0s .. 22051samples] = x[0.5s .. 1s])
+  @test x[0.5s .. 1s] == (x[0s .. 22050samples] = x[0.5s .. 1s])
   @test x[0.5s .. ends] == (x[22050samples .. ends] = x[0.5s .. ends])
 
   @test_throws BoundsError x[0.5s .. 2s,:]
@@ -79,13 +74,20 @@ end
 @inline same(x,y) = isapprox(x,y,rtol=1e-6)
 
 @testset "Sound Construction" begin
-  @test same(sound("sounds/tone.wav"),x)
-  @test same(sound("sounds/two_tone.wav"),
+  @test nsamples(tone(1kHz,1s)) ==
+    ustrip(samplerate(tone(1kHz,1s)))
+  @test nsamples(leftright(tone(1kHz,1s),tone(1kHz,1s))) ==
+    ustrip(samplerate(tone(1kHz,1s)))
+  @test nsamples(ramp(tone(1kHz,1s))) == nsamples(tone(1kHz,1s))
+  @test [x[0s .. 0.5s]; x[0.5s .. ends]] == x
+  @test [x[0s .. 0.5s]; x[0.5s .. ends,:left]] == x
+  @test same(Sound("sounds/tone.wav"),x)
+  @test same(Sound("sounds/two_tone.wav"),
              [tone(1kHz,100ms);silence(800ms);tone(1kHz,100ms)])
   a,b = tone(1kHz,200ms),tone(2kHz,200ms)
-  @test [sound(zeros(10)); sound(zeros(Float32,10))[:,:]] ==
-           [sound(zeros(10,1)); sound(zeros(10,1))]
-  @test_throws ErrorException [sound(zeros(10)); sound(zeros(10);sample_rate=22050Hz)]
+  @test [Sound(zeros(10)); Sound(zeros(Float32,10))[:,:]] ==
+           [Sound(zeros(10,1)); Sound(zeros(10,1))]
+  @test_throws ErrorException [Sound(zeros(10)); Sound(zeros(10);rate=22050Hz)]
   @test leftright(a,b)[:,:left] == a
   @test leftright(a,b)[:,:right] == b
   @test size([tone(1kHz,0.2s); tone(2kHz,0.2s)],2) == 1
@@ -93,15 +95,18 @@ end
     [leftright(tone(1kHz,0.2s),   tone(1kHz,0.2s));
      leftright(tone(1.5kHz,0.2s), tone(0.5kHz,0.2s))]
   @test_throws ErrorException ramp(tone(1kHz,50ms),100ms)
-  @test same(sound("sounds/rampon.wav"),rampon(tone(1kHz,1s)))
-  @test same(sound("sounds/rampoff.wav"),rampoff(tone(1kHz,1s)))
-  @test same(sound("sounds/fadeto.wav"),
+  @test same(Sound("sounds/rampon.wav"),rampon(tone(1kHz,1s)))
+  @test same(Sound("sounds/rampoff.wav"),rampoff(tone(1kHz,1s)))
+  @test same(Sound("sounds/fadeto.wav"),
              fadeto(tone(1kHz,0.5s),tone(2kHz,0.5s)))
   @test fadeto(leftright(tone(1kHz,100ms),tone(1.5kHz,100ms)),
                tone(2kHz,100ms)) != 0
-  @test same(sound("sounds/noise.wav"),noise(1s,rng=rng()))
-  @test same(sound("sounds/bandpass.wav"),
+  @test same(Sound("sounds/noise.wav"),noise(1s,rng=rng()))
+  @test same(Sound("sounds/bandpass.wav"),
              @> noise(1s,rng=rng()) bandpass(400Hz,800Hz))
-  @test same(sound("sounds/complex.wav"),
-             @> harmonic_complex(200Hz,0:5,ones(6),1s) normalize amplify(-20))
+  @test same(Sound("sounds/complex.wav"),
+             @>(harmonic_complex(200Hz,0:5,ones(6),1s),normalize,amplify(-20)))
+  @test silence(1s) == audible(t -> fill(0,size(t)),1s)
 end
+
+# TODO: add tests for interop with SampleBuf and AxisArray.
