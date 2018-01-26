@@ -1,6 +1,11 @@
 using Sounds
 using Base.Test
 
+# TODO: figure out why display isn't working
+# TODO: figure out why we're getting an array of Real instead of Float64
+#     make a test for it
+# TODO: figure out why indexing is messed up for ends
+
 x = leftright(ramp(tone(1kHz,1s)),ramp(tone(1kHz,1s)))
 rng() = MersenneTwister(1983)
 
@@ -13,7 +18,7 @@ Sampled at 44100 Hz
   @test isapprox(duration(x[0s .. 0.5s,:]),0.5s; atol = 1/samplerate(x))
   @test isapprox(duration(x[0.5s .. ends,:]),0.5s; atol = 1/samplerate(x))
 
-  @test x[:left][:right] = x[:left][:left]
+  @test x[:left][:right] == x[:left][:left]
 
   @test x[:left][0s .. 0.5s] == x[0s .. 0.5s,:left]
   @test x[:right][0s .. 0.5s] == x[0s .. 0.5s,:right]
@@ -67,7 +72,7 @@ Sampled at 44100 Hz
 
   @test nsamples(x[0s .. 0.5s,:]) + nsamples(x[0.5s .. ends,:]) == nsamples(x)
   strbuff = IOBuffer()
-  show(strbuff,playable(x))
+  show(strbuff,x)
   @test show_str == String(strbuff)
 end
 
