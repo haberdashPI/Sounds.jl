@@ -1,6 +1,5 @@
 using DSP
 using Unitful
-import SampledSignals: samplerate
 
 export samplerate, set_default_samplerate!, audible, mix, mult, silence,
   envelope, noise, highpass, lowpass, bandpass, bandstop, tone, ramp,
@@ -350,8 +349,8 @@ function leftright(x,y)
   len = maximum(nsamples.((x,y)))
   z = similar(x,(len,2))
   z .= zero(x[1])
-  z[1:nsamples(x),:left] = x
-  z[1:nsamples(y),:left] = y
+  z[1:nsamples(x),1] = x
+  z[1:nsamples(y),2] = y
   z
 end
 
