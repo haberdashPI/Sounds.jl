@@ -2,7 +2,6 @@ using FixedPointNumbers
 using FileIO
 using Lazy: @>, @>>
 using IntervalSets
-using SampledSignals
 
 import FileIO: save
 import DSP: resample
@@ -16,8 +15,12 @@ export sound, playable, duration, nchannels, nsamples, save, samplerate, length,
   samples, vcat, leftright, similar, left, right, resample,
   audiofn, .., ends, data
 
-# TODO: use N to denote the number of channels, and
+# TODO: instead of N, use C to denote the number of channels, and
 # make the sound always have two dimensions
+# TODO: possibly define ends to be a macro resulting in end*samples?
+# or use a macro to replace ends with something?
+# TODO: clean up indexing to have less redundant code
+
 struct Sound{R,T,N} <: AbstractArray{T,N}
   data::Array{T,N}
   """
@@ -64,9 +67,9 @@ Sound(stream::IOStream) = Sound(load(stream))
 
 save(file::Union{AbstractString,IO},sound::Sound) = save(file,SampleBuf(sound))
 
-SampledSignals.SampleBuf(x::Sound) =
+SampleBuf(x::Sound) =
   SampledSignals.SampleBuf(x.data,float(samplerate(x)))
-function AxisArrays.AxisArray(x::Sound)
+function AxisArray(x::Sound)
   time_axis = Axis{:time}(((1:nsamples(x))-1)/samplerate(x))
   ismono(x) ? AxisArray(x,time_axis) :
     AxisArray(x,time_axis,Axis{:channel}([:left,:right]))
@@ -192,10 +195,10 @@ right(sound::AxisArray) =
 
 # adapted from:
 # https://github.com/JuliaAudio/SampledSignals.jl/blob/0a31806c3f7d382c9aa6db901a83e1edbfac62df/src/SampleBuf.jl#L109-L139
-rounded_time(x,rate::Quantity) = rounded_time(x,floor(Int,ustrip(inHz(R))))
-rounded_time(x,rate::Int) = round(ustrip(inseconds(x,R)),ceil(Int,log(10,)))*s
+rounded_time(x,rate::Quantity) = rounded_time(x,floor(Int,ustrip(inHz(rate))))
+rounded_time(x,rate::Int) = round(ustrip(inseconds(x,rate)),floor(Int,log(10,rate)))*s
 
-function show(io::IO, x::Sound{R}) where R
+function Base.show(io::IO, x::Sound{R}) where R
   seconds = rounded_time(duration(x),R)
   typ = if eltype(x) == Q0f15
     "16 bit PCM"
@@ -211,7 +214,6 @@ function show(io::IO, x::Sound{R}) where R
   print(io, "Sampled at $(R*Hz)")
   nsamples(x) > 0 && showchannels(io, x)
 end
-show(io::IO, ::MIME"text/plain", x::Sound) = show(io,x)
 
 const ticks = ['_','▁','▂','▃','▄','▅','▆','▇']
 function showchannels(io::IO, x::Sound, widthchars=80)
@@ -262,7 +264,7 @@ const ends = EndSecs()
 struct ClosedIntervalEnd{N}
   from::Quantity{N}
 end
-minimum(x::ClosedIntervalEnd) = x.from
+Base.minimum(x::ClosedIntervalEnd) = x.from
 
 IntervalSets.:(..)(x::Time,::EndSecs) = ClosedIntervalEnd(x)
 IntervalSets.:(..)(x::SampleQuant,::EndSecs) = ClosedIntervalEnd(x)
