@@ -198,7 +198,7 @@ right(sound::AxisArray) =
 rounded_time(x,rate::Quantity) = rounded_time(x,floor(Int,ustrip(inHz(rate))))
 rounded_time(x,rate::Int) = round(ustrip(inseconds(x,rate)),floor(Int,log(10,rate)))*s
 
-function Base.show(io::IO, x::Sound{R}) where R
+function Base.show(io::IO, x::Sound{R,T,N}) where {R,T,N}
   seconds = rounded_time(duration(x),R)
   typ = if eltype(x) == Q0f15
     "16 bit PCM"
@@ -214,6 +214,7 @@ function Base.show(io::IO, x::Sound{R}) where R
   print(io, "Sampled at $(R*Hz)")
   nsamples(x) > 0 && showchannels(io, x)
 end
+Base.show(io::IO, ::MIME"text/plain", x::Sound) = show(io,x)
 
 const ticks = ['_','▁','▂','▃','▄','▅','▆','▇']
 function showchannels(io::IO, x::Sound, widthchars=80)
