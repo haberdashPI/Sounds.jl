@@ -61,7 +61,7 @@ function soundop(op,xs...)
           "Sounds had unmatched samplerates $(samplerate.(xs)).")
 
   sorted = sort(collect(xs),by=nsamples,rev=true)
-  y = similar(sorted[1],(len,channels))
+  y = similar(xs[1],(len,channels))
   y .= sorted[1]
 
   for x in sorted[2:end]
