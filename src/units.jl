@@ -23,7 +23,8 @@ function insamples{N,M}(time::Time{N},rate::Freq{M})
 end
 
 inHz(x::Quantity) = uconvert(Hz,x)
-inHz(typ::Type{N},x) where {N <: Number} = floor(N,ustrip(inHz(x)))*Hz
+inHz(typ::Type{N},x::Q) where {N <: Number,Q <: Quantity} =
+  floor(N,ustrip(inHz(x)))*Hz
 inHz(typ::Type{N},x::N) where {N <: Number} = inHz(x)
 function inHz(x::Number)
   warn("Unitless value, assuming Hz. Append Hz or kHz to avoid this warning",

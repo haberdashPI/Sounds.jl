@@ -1,35 +1,9 @@
 using DSP
 using Unitful
 
-export samplerate, set_default_samplerate!, audible, mix, mult, silence,
+export samplerate, set_default_samplerate!, mix, mult, silence,
   envelope, noise, highpass, lowpass, bandpass, bandstop, tone, ramp,
   harmonic_complex, amplify, rampon, rampoff, fadeto, irn, samplerate
-
-"""
-    audible(fn,len,asseconds=true;rate=samplerate(),eltype=Float64,
-            offset=0s)
-
-Creates monaural sound where `fn(t)` returns the amplitudes for a given `Range`
-of time points, with resulting values ranging between -1 and 1 as an iterable
-object.
-
-If `asseconds` is false, `fn(i)` returns the amplitudes for a given `Range` of
-sample indices instead of time points.
-
-The function `fn` should always return elements of type `eltype`.
-
-If `offset` is specified, return the section of the sound starting
-from `offset` (rather than 0 seconds).
-"""
-function audible(fn::Function,len=Inf,asseconds=true;
-                 offset=0s,rate=samplerate(),eltype=Float64)
-  rate_Hz = inHz(rate)
-
-  n = ustrip(insamples(offset,rate_Hz))
-  m = ustrip(insamples(len,rate_Hz))
-  R = floor(Int,ustrip(rate_Hz))
-  Sound(!asseconds ? fn(n+1:m) : fn(((n:m-1)-1)/R),rate=rate)
-end
 
 """
     mix(x,y,...)
@@ -60,12 +34,12 @@ function soundop(op,xs...)
   @assert(all(samplerate.(xs) .== rate),
           "Sounds had unmatched samplerates $(samplerate.(xs)).")
 
-  sorted = sort(collect(xs),by=nsamples,rev=true)
+  sorted = sortperm(collect(nsamples.(xs)),rev=true)
   y = similar(xs[1],(len,channels))
-  y .= sorted[1]
+  y .= xs[sorted[1]]
 
-  for x in sorted[2:end]
-    y[1:nsamples(x),:] .= op.(y[1:nsamples(x),:],x[:,:])
+  for i in sorted[2:end]
+    y[1:nsamples(xs[i]),:] .= op.(y[1:nsamples(xs[i]),:],xs[i][:,:])
   end
 
   y
@@ -78,25 +52,19 @@ end
 Creates period of silence of the given length (in seconds).
 """
 function silence(length;rate=samplerate())
-  audible(t -> fill(0.0,size(t)),length,false,rate=rate)
+  Sound(t -> fill(0.0,size(t)),length,false,rate=rate)
 end
 
 """
-    envelope(mult,length;[rate_Hz=44100])
+    dc_offset(length;[rate_Hz=44100])
 
-creates an envelope of a given multiplier and length (in seconds).
+Creates a DC offset of unit value.
 
-If mult = 0 this is the same as calling [`silence`](@ref). This function
-is useful in conjunction with [`fadeto`](@ref) and [`mult`](@ref)
-when defining an envelope that changes in level. For example,
-the following will play a 1kHz tone for 1 second, which changes
-in volume halfway through to a softer level.
-
-    mult(tone(1000,1),fadeto(envelope(1,0.5),envelope(0.1,0.5)))
-
+In other words, this just returns samples all with the value 1: `silence` is
+to `zeros` just as `dc_offset` is to `ones`.
 """
-function envelope(mult,length;rate=samplerate())
-  audible(t -> mult*ones(t),length,rate=rate)
+function dc_offset(length;rate=samplerate())
+  Sound(t -> fill(1.0,size(t)),length,false,rate=rate)
 end
 
 """
@@ -106,7 +74,7 @@ Creates a period of white noise of the given length (in seconds).
 
 """
 function noise(len=Inf;rate=samplerate(),rng=RandomDevice())
-  audible(i -> 1.0-2.0rand(rng,length(i)),len,false,rate=rate)
+  Sound(i -> 1.0-2.0rand(rng,length(i)),len,false,rate=rate)
 end
 
 """
@@ -117,7 +85,7 @@ Creates a pure tone of the given frequency and length (in seconds).
 """
 function tone(freq,len=Inf;rate=samplerate(),phase=0.0)
   freq_Hz = ustrip(inHz(freq))
-  audible(t -> sin.(2π*t * freq_Hz + phase),len,rate=rate)
+  Sound(t -> sin.(2π*t * freq_Hz + phase),len,rate=rate)
 end
 
 function complex_cycle(f0,harmonics,amps,rate,phases)
@@ -155,7 +123,7 @@ function harmonic_complex(f0,harmonics,amps,len=Inf;
                         inHz(Int,rate),phases)
 
   N = size(cycle,1)
-  audible(i -> cycle[(i.-1) .% N + 1],len,false,rate=rate)
+  Sound(i -> cycle[(i.-1) .% N + 1],len,false,rate=rate)
 end
 
 """
@@ -250,7 +218,7 @@ function ramp(x,len=5ms)
   end
 
   n = nsamples(x)
-	r = audible(n*samples,false,rate=samplerate(x)) do t
+	r = Sound(n*samples,false,rate=samplerate(x)) do t
     ifelse.(t .< ramp_n,
       -0.5.*cos.(π.*t./ramp_n).+0.5,
     ifelse.(t .< n .- ramp_n,
@@ -272,7 +240,7 @@ function rampon(x,len=5ms)
           "$(rounded_time(duration(x),samplerate(x))) sound.")
   end
 
-	r = audible(ramp_n*samples,false,rate=samplerate(x)) do t
+	r = Sound(ramp_n*samples,false,rate=samplerate(x)) do t
     -0.5.*cos.(π.*t./ramp_n).+0.5
 	end
 	mult(x,r)
@@ -301,7 +269,7 @@ function rampoff(x,len=5ms)
   end
 
   rampstart = (after - len_s)
-	r = audible(after*samples,false) do t
+	r = Sound(after*samples,false) do t
     ifelse.(t .< rampstart,1,-0.5.*cos.(π.*(t.-rampstart)./len_s.+π).+0.5)
 	end
 	mult(x,r)
@@ -335,46 +303,3 @@ amplify(x,dB) = x * (10^(dB/20))
 Normalize the sound so it has a power of 1.
 """
 normalize(x) = x ./ sqrt(mean(x.^2))
-
-
-"""
-    leftright(left,right)
-
-Create a stereo sound from two monaural sounds.
-"""
-function leftright(x,y)
-  @assert(samplerate(x) == samplerate(y),
-          "Sounds had unmatched samplerates $(samplerate.((x,y))).")
-  @assert size(x,2) == size(y,2) == 1 "Expected two monaural sounds."
-
-  len = maximum(nsamples.((x,y)))
-  z = similar(x,(len,2))
-  z .= zero(x[1])
-  z[1:nsamples(x),1] = x
-  z[1:nsamples(y),2] = y
-  z
-end
-
-"""
-    resample(x::Sound,new_rate)
-
-Returns a new sound representing `x` at the given sampling rate.
-
-You will loose all frequencies in `x` that are above `new_rate/2` if you
-reduce the sampling rate. This will produce a warning.
-"""
-function resample(x,new_rate)
-  R = ustrip(inHz(samplerate(x)))
-  new_rate = floor(Int,ustrip(inHz(new_rate)))
-  if new_rate < R
-    warn("The function `resample` reduced the sample rate, high freqeuncy",
-         " information above $(new_rate/2) will be lost.")
-  end
-  T = eltype(x)
-  if isstereo(x)
-    Sound{new_rate,T,2}(hcat(T.(resample(left(x),new_rate // R)),
-                             T.(resample(right(x),new_rate // R))))
-  else
-    Sound{new_rate,T,1}(T.(resample(x,new_rate // R)))
-  end
-end

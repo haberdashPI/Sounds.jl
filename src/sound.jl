@@ -15,46 +15,95 @@ import SampledSignals: SampleBuf
 
 export sound, playable, duration, nchannels, nsamples, save, samplerate, length,
   samples, leftright, similar, left, right, resample,
-  audiofn, .., ends, data, Sound
+  audiofn, .., ends, data, Sound, ismono, isstereo
 
-# TODO: instead of N, use C to denote the number of channels, and
-# make the sound always have two dimensions
-# TODO: possibly define ends to be a macro resulting in end*samples?
-# or use a macro to replace ends with something?
-# TODO: clean up indexing to have less redundant code
-
-struct Sound{R,T,N} <: AbstractArray{T,N}
-  data::Array{T,N}
-  """
-      Sound(x::Array;[rate=samplerate()])
-
-  Creates a sound object from an arbitrary array.
-
-  Assumes 1 is the loudest and -1 the softest. The array should be 1d for mono
-  signals, or an array of size (N,2) for stereo sounds.
-  """
-  function Sound(x::Array{T,N};rate=samplerate()) where {T,N}
-    if N ∉ [1,2]
-      error("Array must have 1 or 2 dimensions to be converted to a sound.")
-    end
-
-    R = floor(Int,ustrip(inHz(rate)))
-    new{R,T,N}(x)
+struct Sound{R,T,C,N} <: AbstractArray{T,N}
+  data::AbstractArray{T,N}
+  function Sound(R::Int,C::Int,x::AbstractArray{T,N}) where {T,N}
+    @assert(1 <= C <= 2, "Number of sound channels ($C) must be 1 or 2.")
+    @assert(size(x,2) == C,
+            "Sounds channels ($C) and data columns ($size(x,2)) must match.")
+    @assert(1 <= ndims(x) <= 2,
+            "Sound arrays must have 1 or 2 dimensions.")
+    new{R,T,C,N}(x)
   end
 end
 
-function Base.convert(::Type{Sound{R,T,N}},x::Array{T,N}) where {R,T,N}
-  Sound(x,rate=R*Hz)
-end
-function Base.convert(::Type{Sound{R,T}},x::Sound{R,S,N}) where {R,T,S,N}
-  Sound{R,T,N}(convert(Array{T,N},x.data))
-end
-function Base.convert{R,Q,T,S}(::Type{Sound{R,T}},x::Sound{Q,S})
-  error("Cannot convert a sound with sampling rate $(Q*Hz) to a sound with ",
-        "sampling rate $(R*Hz). Use `resample` to change the sampling rate.")
+MonoSound{R,T,N} = Sound{R,T,1,N}
+StereoSound{R,T,N} = Sound{R,T,2,N}
+
+"""
+    Sound(x::AbstractArray;[rate=samplerate(x)])
+
+Creates a sound object from an array.
+
+Assumes 1 is the loudest and -1 the softest. The array should be 1d for mono
+signals, or an array of size (N,2) for stereo sounds.
+"""
+function Sound(x::AbstractArray;rate=samplerate())
+  R = floor(Int,ustrip(inHz(rate)))
+  Sound(R,size(x,2),view(x,:,:))
 end
 
-function Base.Array(x::Sound{R,T,N}) where {R,T,N}
+function Sound(x::Sound;rate=samplerate(x))
+  if rate == samplerate(x)
+    x
+  else
+    resample(x,rate)
+  end
+end
+
+function Base.convert(::Type{Sound{R,T}},x::Array{T}) where {R,T}
+  Sound(x[:,:],rate=R*Hz)
+end
+
+function Base.convert(to::Type{Sound{R1,T1,C1}},
+                      x::Sound{R2,T2,C2}) where {R1,R2,T1,T2,C1,C2}
+  if R1 != R2
+    convert(to,resample(x,R1))
+  elseif C1 != C2
+    if C1 == 1
+      convert(to,asmono(x))
+    else
+      convert(to,asstereo(x))
+    end
+  elseif T1 != T2
+    convert(to,Sound{R2,T1,C2}(convert(Array{T1},x.data)))
+  else
+    x
+  end
+end
+
+"""
+    resample(x::Sound,new_rate;warn=true)
+
+Returns a new sound representing `x` at the given sampling rate.
+
+You will loose all frequencies in `x` that are above `new_rate/2` if you
+reduce the sampling rate. This will produce a warning unless `warn` is false.
+"""
+function resample(x,new_rate;warn=true)
+  R = ustrip(inHz(Int,samplerate(x)))
+  new_rate = floor(Int,ustrip(inHz(new_rate)))
+  if new_rate < R && warn
+    Base.warn("The function `resample` reduced the sample rate, high freqeuncy"*
+              " information above $(new_rate/2) will be lost.",
+              bt=backtrace())
+  elseif new_rate == R
+    return x
+  end
+
+  T = eltype(x)
+  @show new_rate // R
+  if isstereo(x)
+    Sound(new_rate,2,hcat(T.(resample(x.data[:,1],new_rate // R)),
+                          T.(resample(x.data[:,2],new_rate // R))))
+  else
+    Sound(new_rate,1,T.(resample(x.data[:],new_rate // R)))
+  end
+end
+
+function Base.Array(x::Sound{R,T,C}) where {R,T,C}
   x.data
 end
 
@@ -66,15 +115,6 @@ Load a specified file as a `Sound` object.
 Sound(file::File) = Sound(load(file))
 Sound(file::String) = Sound(load(file))
 Sound(stream::IOStream) = Sound(load(stream))
-
-"""
-    Sound(x::AbstractArray;rate=samplerate(x))
-
-Converts any abstract array into a sound. Copies the the data.
-
-Also see [`samplerate`](@ref).
-"""
-Sound(x::AbstractArray;rate=samplerate(x)) = Sound(collect(x),rate=rate)
 
 """
     Sound(x::SampledSignals.SampleBuf)
@@ -102,6 +142,31 @@ end
 
 
 """
+    Sound(fn,len,asseconds=true;rate=samplerate(),offset=0s)
+
+Creates monaural sound where `fn(t)` returns the amplitudes for a given `Range`
+of time points (in seconds as a `Float64`q). The function `fn(t)` should return
+values ranging between -1 and 1 as an iterable object, and should be just
+as long as `t`.
+
+If `asseconds` is false, `fn(i)` returns the amplitudes for a given `Range` of
+sample indices (rather than time points).
+
+If `offset` is specified, return the section of the sound starting
+from `offset` (rather than starting from 0 seconds).
+"""
+function Sound(fn::Function,len=Inf,asseconds=true;
+               offset=0s,rate=samplerate())
+  rate_Hz = inHz(rate)
+
+  n = ustrip(insamples(offset,rate_Hz))
+  m = ustrip(insamples(len,rate_Hz))
+  R = floor(Int,ustrip(rate_Hz))
+  Sound(!asseconds ? fn(n+1:m) : fn(((n:m-1)-1)/R),rate=rate)
+end
+
+
+"""
     duration(x)
 
 Returns the duration of the sound. If passed an `Array`, takes a
@@ -119,26 +184,24 @@ Base.length(x::Sound) = length(x.data)
 
 Returns a stereo version of a sound (wether it is stereo or monaural).
 """
-asstereo(x::Sound{R,T,1}) where {R,T} = hcat(x.data,x.data)
-asstereo(x::Sound{R,T,2}) where {R,T} =
-  size(x,2) == 1 ? hcat(x.data,x.data) : x.data
+asstereo(x::Sound{R,T,1}) where {R,T} = leftright(x,x)
+asstereo(x::Sound{R,T,2}) where {R,T} = x
 
 """
     asmono(x)
 
 Returns a monaural version of a sound (whether it is stereo or manaural).
 """
-asmono(x::Sound{R,T,1}) where {R,T} = x.data
-asmono(x::Sound{R,T,2}) where {R,T} =
-  size(x,2) == 1 ? squeeze(x,2) : squeeze(mix(x[:left],x[:right]),2)
+asmono(x::Sound{R,T,1}) where {R,T} = x
+asmono(x::Sound{R,T,2}) where {R,T} = mix(left(x),right(x))
 
 """
     ismono(x)
 
 True if the sound is monaural.
 """
-ismono(x::Sound{R,T,1}) where {R,T} = true
-ismono(x::Sound{R,T,2}) where {R,T} = nchannels(x) == 1
+ismono(x::MonoSound) = true
+ismono(x::StereoSound) = false
 
 """
     isstereo
@@ -147,20 +210,22 @@ True if the sound is stereo.
 """
 isstereo(x::Sound) = !ismono(x)
 
-Base.vcat(xs::Sound...) = error("Sample rates differ, fix with `resample`.")
-function Base.vcat(xs::Sound{R}...) where R
+function Base.vcat(xs::Sound...)
+  R = maximum(rtype.(xs))
+  @show R
   T = promote_type(map(eltype,xs)...)
-  Base.vcat((map(el -> convert(T,el),x) for x in xs)...)
-end
-Base.vcat(xs::Sound{R,T,1}...) where {R,T} =
-    Sound{R,T,1}(Base.vcat(map(x -> x.data,xs)...))
-function Base.vcat(xs::Sound{R,T}...) where {R,T}
-  if any(!ismono,xs)
-    Sound{R,T,2}(Base.vcat(map(asstereo,xs)...))
-  else
-    Sound{R,T,1}(Base.vcat(map(asmono,xs)...))
+  @show T
+  C = maximum(nchannels.(xs))
+  @show C
+  ys = map(xs) do x
+    convert(Sound{R,T,C},x)
   end
+  @show typeof.(ys)
+
+  Sound(R,C,vcat(map(x -> x.data,ys)...))
 end
+Base.vcat(xs::Sound{R,T,C,N}...) where {R,T,C,N} =
+  Sound(R,C,vcat(map(x -> x.data,xs)...))
 
 function Base.:(*)(x::Number,y::Sound)
   z = similar(y)
@@ -184,7 +249,7 @@ duration(x::Sound{R}) where R = uconvert(s,nsamples(x) / (R*Hz))
 
 Return the number of channels (1 for mono, 2 for stereo) in this sound.
 """
-nchannels(x::Sound) = size(x.data,2)
+nchannels(x::Sound{R,T,C,N}) where {R,T,C,N} = C
 
 """
     nsamples(sound)
@@ -195,8 +260,6 @@ The number of samples is not always the same as the `length` of the sound.
 Stereo sounds have a length of 2 x nsamples(sound).
 """
 nsamples(x::Sound) = size(x.data,1)
-Base.size(x::Sound) = size(x.data)
-Base.IndexStyle(::Type{Sound}) = IndexCartesian()
 
 """
     left(sound)
@@ -204,7 +267,7 @@ Base.IndexStyle(::Type{Sound}) = IndexCartesian()
 Extract the left channel of a sound. For monaural sounds, `left` and `right`
 return the same value.
 """
-left(sound) = size(sound,2) == 1 ? sound : sound[:,1]
+left(sound::Sound) = sound[:left]
 left(sound::AxisArray) =
     size(data,2) == 1 ? sound : sound[Axis{:channel}(:left)]
 
@@ -214,7 +277,7 @@ left(sound::AxisArray) =
 Extract the right channel of a sound. For monaural sounds, `left` and `right`
 return the same value.
 """
-right(sound) = size(sound,2) == 1 ? sound : sound[:,2]
+right(sound::Sound) = sound[:right]
 right(sound::AxisArray) =
     size(data,2) == 1 ? sound : sound[Axis{:channel}(:right)]
 
@@ -250,7 +313,7 @@ function showchannels(io::IO, x::Sound, widthchars=80)
   for blk in 1:nblocks
     i = (blk-1)*blockwidth + 1
     n = min(blockwidth, nsamples(x)-i+1)
-    peaks = sqrt.(mean(float(x[(1:n)+i-1,:]).^2,1))
+    peaks = sqrt.(mean(float(x.data[(1:n)+i-1,:]).^2,1))
     # clamp to -60dB, 0dB
     peaks = clamp.(20log10.(peaks), -60.0, 0.0)
     idxs = trunc.(Int, (peaks+60)/60 * (length(ticks)-1)) + 1
@@ -262,27 +325,67 @@ function showchannels(io::IO, x::Sound, widthchars=80)
   end
 end
 
+########################################
+# AbstractArray interface:
 
-@inline function Base.getindex(x::Sound,i::Int)
-  @boundscheck checkbounds(x.data,i)
-  @inbounds return x.data[i]
+Base.size(x::Sound) = size(x.data)
+Base.IndexStyle(::Type{Sound}) = IndexCartesian()
+
+@inline function getindex(x::Sound,ixs::Int...)
+  @boundscheck checkbounds(x.data,ixs...)
+  @inbounds return getindex(x.data,ixs...)
 end
 
-@inline function Base.setindex!{R,T,S}(x::Sound{R,T},v::S,i::Int)
-  @boundscheck checkbounds(x.data,i)
-  @inbounds return x.data[i] = convert(T,v)
+@inline function setindex!(x::Sound,v,ixs::Int...)
+  @boundscheck checkbounds(x.data,ixs...)
+  @inbounds return setindex!(x.data,v,ixs...)
 end
 
+############################################################
+# custom indexing:
 
-@inline function Base.getindex(x::Sound,i::Int,j::Int)
-  @boundscheck checkbounds(x.data,i,j)
-  @inbounds return x.data[i,j]
+########################################
+# indexing by :left and :right
+
+@inline @Base.propagate_inbounds getindex(x::Sound,js::Symbol) =
+  getindex(x,:,js)
+@inline @Base.propagate_inbounds function getindex(x::Sound,ixs,js::Symbol)
+  if js == :left
+    getindex(x,ixs,1)
+  elseif js == :right
+    if nchannels(x) == 1
+      getindex(x,ixs,1)
+    else
+      getindex(x,ixs,2)
+    end
+  else
+    throw(BoundsError(x,js))
+  end
 end
 
-@inline function setindex!{R,T,S}(x::Sound{R,T},v::S,i::Int,j::Int)
-  @boundscheck checkbounds(x.data,i,j)
-  @inbounds return x.data[i,j] = convert(T,v)
+@inline @Base.propagate_inbounds setindex!(x::Sound,vals,js::Symbol) =
+  getindex(x,vals,:,js)
+@inline @Base.propagate_inbounds function setindex!(x::Sound,vals,ixs,js::Symbol)
+  if js == :left
+    setindex!(x,vals,ixs,1)
+  elseif js == :right
+    if nchannels(x) == 1
+      getindex!(x,vals,ixs,1)
+    else
+      getindex!(x,vals,ixs,2)
+    end
+  else
+    throw(BoundsError(x,js))
+  end
 end
+
+@inline function setindex!(x::Sound,i::Int,ixs::Union{AbstractVector,Colon})
+  @boundscheck checkbounds(x.data,ixs)
+  getindex(x.data,i,ixs)
+end
+
+########################################
+# indexing by time intervals (e.g. x[1s .. 3s])
 
 struct EndSecs; end
 const ends = EndSecs()
@@ -302,148 +405,59 @@ function checktime(time)
   end
 end
 
-function getindex(x::Sound,js::Symbol)
-  if js == :left || (js == :right && size(x,2) == 1)
-    getindex(x,:,1)
-  elseif js == :right
-    getindex(x,:,2)
-  else
-    throw(BoundsError(x,js))
-  end
+const Index = Union{Integer,AbstractVector,Colon}
+const IntervalType = Union{ClosedInterval,ClosedIntervalEnd}
+
+function asrange(x::Sound{R},ixs::ClosedInterval) where R
+  checktime(minimum(ixs))
+  from = max(1,insamples(minimum(ixs),R*Hz)+1)
+  to = insamples(maximum(ixs),R*Hz)
+  checkbounds(x.data,from,:)
+  checkbounds(x.data,to,:)
+  from:to
 end
 
-@inline @Base.propagate_inbounds function getindex(x::Sound,ixs,js::Symbol)
-  if js == :left || (js == :right && size(x,2) == 1)
-    getindex(x,ixs,1)
-  elseif js == :right
-    getindex(x,ixs,2)
-  else
-    throw(BoundsError(x,js))
-  end
+function asrange(x::Sound{R},ixs::ClosedIntervalEnd) where R
+  checktime(minimum(ixs))
+  from = max(1,insamples(minimum(ixs),R*Hz)+1)
+  checkbounds(x.data,from,:)
+  from:nsamples(x)
 end
-@inline @Base.propagate_inbounds function setindex!(x::Sound,vals,ixs,js::Symbol)
-  if js == :left || (js == :right && size(x,2) == 1)
-    setindex!(x,vals,ixs,1)
-  elseif js == :right
-    setindex!(x,vals,ixs,2)
-  else
-    throw(BoundsError(x,js))
-  end
-end
+
+getindex(x::MonoSound,interval::IntervalType) = getindex(x,asrange(x,interval))
+getindex(x::StereoSound,interval::IntervalType) = getindex(x,asrange(x,interval),:)
+getindex(x::Sound,interval::IntervalType,js::Index) =
+  getindex(x,asrange(x,interval),js)
+
+setindex!(x::MonoSound,vals::AbstractArray,interval::IntervalType) =
+  setindex!(x,vals,asrange(x,interval))
+setindex!(x::StereoSound,vals::AbstractArray,interval::IntervalType) =
+  setindex!(x,vals,asrange(x,interval),:)
+setindex!(x::Sound,vals::AbstractArray,interval::IntervalType,js::Index) =
+  setindex!(x,vals,asrange(x,interval),js)
 
 ########################################
-# getindex
-const Index = Union{Integer,Range,AbstractVector,Colon}
-@inline function getindex(x::Sound{R,T},
-                          ixs::ClosedIntervalEnd,js::I) where {R,T,I <: Index}
-  @boundscheck checktime(minimum(ixs))
-  from = max(1,insamples(minimum(ixs),R*Hz)+1)
-  @boundscheck checkbounds(x.data,from,js)
-  @inbounds result = x.data[from:end,js]
-  return Sound{R,T,ndims(result)}(result)
+
+function Base.similar(x::Sound{R,T,C},::Type{S},
+                      dims::Tuple{Vararg{Int64,N}}) where {R,T,C,S,N}
+  C2 = length(dims) >= 2 ? dims[2] : 1
+  Sound(R,C2,similar(x.data,S,dims))
 end
 
-@inline function
-  getindex(x::Sound{R,T,N},
-           ixs::ClosedInterval{TM},js::I) where {R,T,I <: Index,N,TM <: Quantity}
-  @boundscheck checktime(minimum(ixs))
-  from = max(1,insamples(minimum(ixs),R*Hz)+1)
-  to = insamples(maximum(ixs),R*Hz)
-  @boundscheck checkbounds(x.data,from:to,js)
-  @inbounds result = x.data[from:to,js]
-  return Sound{R,T,ndims(result)}(result)
-end
+"""
+    leftright(left,right)
 
-@inline function getindex(x::Sound{R,T},ixs::ClosedIntervalEnd) where {R,T}
-  @boundscheck checktime(minimum(ixs))
-  from = max(1,insamples(minimum(ixs),R*Hz)+1)
-  if size(x,2) == 1
-    @boundscheck checkbounds(x.data,from)
-    @inbounds return Sound{R,T,1}(x.data[from:end])
-  else
-    @boundscheck checkbounds(x.data,from,:)
-    @inbounds return Sound{R,T,2}(x.data[from:end,:])
-  end
-end
+Create a stereo sound from two monaural sounds.
+"""
+function leftright(x,y)
+  @assert(samplerate(x) == samplerate(y),
+          "Sounds had unmatched samplerates $(samplerate.((x,y))).")
+  @assert size(x,2) == size(y,2) == 1 "Expected two monaural sounds."
 
-@inline function getindex(x::Sound{R,T},
-                          ixs::ClosedInterval{TM}) where {R,T,TM <: Quantity}
-  @boundscheck checktime(minimum(ixs))
-  from = max(1,insamples(minimum(ixs),R*Hz)+1)
-  to = insamples(maximum(ixs),R*Hz)
-  if size(x,2) == 1
-    @boundscheck checkbounds(x.data,from)
-    @boundscheck checkbounds(x.data,to)
-    @inbounds return Sound{R,T,1}(x.data[from:to])
-  else
-    @boundscheck checkbounds(x.data,from,:)
-    @boundscheck checkbounds(x.data,to,:)
-    @inbounds return Sound{R,T,2}(x.data[from:to,:])
-  end
-end
-
-########################################
-# setindex
-
-@inline function setindex!{R,T,I}(
-  x::Sound{R,T},vals::AbstractArray,ixs::ClosedIntervalEnd,js::I)
-  @boundscheck checktime(minimum(ixs))
-  from = max(1,insamples(minimum(ixs),R*Hz)+1)
-  @boundscheck checkbounds(x.data,from,js)
-  @inbounds x.data[from:end,js] = vals
-  vals
-end
-
-@inline function setindex!(
-  x::Sound{R,T},vals::AbstractArray,
-  ixs::ClosedInterval{TM},js::I) where {R,T,I,TM <: Quantity}
-  @boundscheck checktime(minimum(ixs))
-  from = max(1,insamples(minimum(ixs),R*Hz)+1)
-  to = insamples(maximum(ixs),R*Hz)
-  @boundscheck checkbounds(x.data,from,js)
-  @boundscheck checkbounds(x.data,to,js)
-  @inbounds x.data[from:to,js] = vals
-  vals
-end
-
-@inline function setindex!{R,T}(
-  x::Sound{R,T},vals::AbstractArray,ixs::ClosedIntervalEnd)
-    @boundscheck checktime(minimum(ixs))
-    from = max(1,insamples(minimum(ixs),R*Hz)+1)
-    if size(x,2) == 1
-      @boundscheck checkbounds(x.data,from)
-      @inbounds x.data[from:end] = vals
-    else
-      @boundscheck checkbounds(x.data,from,:)
-      @inbounds x.data[from:end,:] = vals
-    end
-    vals
-
-end
-
-@inline function setindex!(
-    x::Sound{R,T},vals::AbstractArray,
-    ixs::ClosedInterval{TM}) where {R,T,TM <: Quantity}
-  @boundscheck checktime(minimum(ixs))
-  from = max(1,insamples(minimum(ixs),R*Hz)+1)
-  to = insamples(maximum(ixs),R*Hz)
-  if size(x,2) == 1
-    @boundscheck checkbounds(x.data,from:to)
-    @inbounds x.data[from:to] = vals
-  else
-    @boundscheck checkbounds(x.data,from:to,:)
-    @inbounds x.data[from:to,:] = vals
-  end
-  vals
-end
-
-function Base.similar(x::Sound{R,T,N},::Type{S},
-                      dims::NTuple{M,Int}) where {R,T,S,N,M}
-  if M ∉ [1,2] || (M == 2 && dims[2] ∉ [1,2])
-    warn("Sounds must have 1 or 2 dimensions and 1 or 2 channels."*
-         "Sounds cannot be created from any other array dimensions.")
-    similar(x.data,S,dims)
-  else
-    Sound(similar(x.data,S,dims),rate=samplerate(x))
-  end
+  len = maximum(nsamples.((x,y)))
+  z = similar(x,(len,2))
+  z .= zero(x[1])
+  z[1:nsamples(x),1] = x
+  z[1:nsamples(y),2] = y
+  z
 end

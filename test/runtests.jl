@@ -9,15 +9,19 @@ Sampled at 44100 Hz
 ▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆
 ▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆"
 
+
+# TODO: getting a single samples left and right value x[1,:] (should not be a sound)
+
 @testset "Sound Indexing" begin
   @test isapprox(duration(x[0s .. 0.5s,:]),0.5s; atol = 2/samplerate(x))
   @test isapprox(duration(x[0.5s .. ends,:]),0.5s; atol = 2/samplerate(x))
 
   @test x[:left][:right] == x[:left][:left]
 
+  @test ismono(x[0s .. 0.5s,:left])
+  @test isstereo(x[0s .. 0.5s])
   @test x[:left][0s .. 0.5s] == x[0s .. 0.5s,:left]
   @test x[:right][0s .. 0.5s] == x[0s .. 0.5s,:right]
-  @test x[:left] == x[:right]
   @test x[:,:left][0s .. 0.5s] == x[0s .. 0.5s,:left]
   @test x[:,:left] == x[:,:right]
   @test x[0.5s .. 0.75s] == x[0.5s .. 0.75s,:]
@@ -73,7 +77,16 @@ end
 
 @inline same(x,y) = isapprox(x,y,rtol=1e-6)
 
+# TODO: test concatenating sounds of differing samplerates, eltypes and
+# channels
+
 @testset "Sound Construction" begin
+  @test samplerate([Sound(zeros(10)); Sound(zeros(10);rate=22050Hz)]) ==
+    44100Hz
+  @test nchannels([silence(200samples);x]) == 2
+  @test eltype(Sound(t -> zeros(t),200samples)) == Float64
+  @test eltype([Sound(t -> zeros(t),200samples); silence(200samples)]) ==
+    Float64
   @test nsamples(tone(1kHz,1s)) ==
     ustrip(samplerate(tone(1kHz,1s)))
   @test nsamples(leftright(tone(1kHz,1s),tone(1kHz,1s))) ==
@@ -87,7 +100,6 @@ end
   a,b = tone(1kHz,200ms),tone(2kHz,200ms)
   @test [Sound(zeros(10)); Sound(zeros(Float32,10))[:,:]] ==
            [Sound(zeros(10,1)); Sound(zeros(10,1))]
-  @test_throws ErrorException [Sound(zeros(10)); Sound(zeros(10);rate=22050Hz)]
   @test leftright(a,b)[:,:left] == a
   @test leftright(a,b)[:,:right] == b
   @test size([tone(1kHz,0.2s); tone(2kHz,0.2s)],2) == 1
@@ -106,7 +118,7 @@ end
              @> noise(1s,rng=rng()) bandpass(400Hz,800Hz))
   @test same(Sound("sounds/complex.wav"),
              @>(harmonic_complex(200Hz,0:5,ones(6),1s),normalize,amplify(-20)))
-  @test silence(1s) == audible(t -> fill(0,size(t)),1s)
+  @test silence(1s) == Sound(t -> fill(0,size(t)),1s)
 end
 
 # TODO: add tests for interop with SampleBuf and AxisArray.
