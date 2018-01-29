@@ -301,4 +301,5 @@ amplify(x,dB) = x * (10^(dB/20))
 
 Normalize the sound so it has a power of 1.
 """
-normpower(x::Sound) = x ./ sqrt.(mean(x.^2,1))
+normpower(x) = x ./ sqrt.(mean(x.^2,1))
+normpower(x::Sound{R,T,C}) where {R,T,C} = Sound(R,C,x ./ sqrt.(mean(x.^2,1)))
