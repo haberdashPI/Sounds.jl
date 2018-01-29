@@ -5,42 +5,81 @@
 <!-- [![TravisCI Status](https://travis-ci.org/haberdashPI/Weber.jl.svg?branch=master)](https://travis-ci.org/haberdashPI/Weber.jl) -->
 <!-- [![](https://img.shields.io/badge/docs-stable-blue.svg)](https://haberdashPI.github.io/Weber.jl/stable) -->
 
-Sounds provides a simple interface to create and manipulate sounds. 
+Sounds provides a simple interface to create sounds and variety of means to manipulate
+those sounds.
 
 ```julia
 using Sounds
 
+# create a pure tone 20 dB below a power 1 signal
 sound1 = @> tone(1kHz,5s) normalize amplify(-20)
-sound2 = @> Sound("mysound.wav") normalize amplify(-10)
-sound3 = @> audible(t -> 1000t .% 1,2s)
+
+# load a sound from a file
+sound2 = Sound("mysound.wav")
+
+# create a sawtooth wave 
+sound3 = @> Sound(t -> 1000t .% 1,2s) normalize amplify(-20)
 ```
 
-Sounds work much like arrays, and you can access parts of them using [Untiful.jl](https://github.com/ajkeller34/Unitful.jl) values and [IntervalSets.jl](https://github.com/JuliaMath/IntervalSets.jl). For example:
+Sounds work much like arrays, and in addition to the normal ways of indexing an
+array, you can also access parts of a sound using
+[Untiful.jl](https://github.com/ajkeller34/Unitful.jl) values and
+[IntervalSets.jl](https://github.com/JuliaMath/IntervalSets.jl). For example:
 
 ```julia
 sound1[1s .. 2s,:left]
 sound1[3s .. ends,:right]
-leftright(sound1[0s .. 1s,:left],sound2[0s .. 1s,:right])
+leftright(sound1[0s .. 1s,:left],sound2[1s .. 2s,:right])
 ```
 
-See the [documentation](https://haberdashPI.github.io/Sounds.jl/latest) for more
-information.
+When working with multiple sounds, methods in this package "just work". If the
+sounds have a different number of channels, a different sampling rate or different bit
+rate, the sounds are first promoted to the highest fidelity representation, and then
+the given method is applied to this promoted representation.
 
-# Alternative solutions
+See the [documentation](https://haberdashPI.github.io/Sounds.jl/latest) for a complete
+description of available methods.
+
+Once you've created a sound you can use [PortAudio.jl](https://github.com/JuliaAudio/PortAudio.jl) or [TimedPortAudio.jl](https://github.com/haberdashPI/TimedPortAudio.jl) to play the sounds, or you can just save the sound.
+
+```julia
+sound1 = @> tone(1kHz,5s) normalize amplify(-20)
+
+using TimedPortAudio
+play(sound1)
+
+using PortAudio
+using SampledSignals
+stream = PortAudioStream("Built-in Microph", "Built-in Output")
+write(stream,SampleBuf(sound1))
+
+using FileIO
+save("puretone.wav",sound1)
+```
+
+# Alternative Solutions
 
 There are two other ways you might represent sounds in Julia,
 [AxisArrays.jl](https://github.com/JuliaArrays/AxisArrays.jl) and
-[SampledSignals.jl](https://github.com/JuliaAudio/SampledSignals.jl). Rather
-than use these existing types to generate sounds, I chose to create a new
-type. The `Sound` type provided here differs from those types in a few small
-ways that make it a little more convienient to work with (IMHO).
+[SampledSignals.jl](https://github.com/JuliaAudio/SampledSignals.jl). A `Sound`
+differs from these solutions in a number of ways.
 
-1. `SampledSignals` uses some out of date pacakges, and aims to support some older versions of julia, and has been a little slow to update recently. This can make it a little tricky for interoperability with newer packages. `Sound` uses the more modern [Unitful.jl](https://github.com/ajkeller34/Unitful.jl) package to handle units, and the [IntervalSets.jl](https://github.com/scheinerman/IntervalSets.jl) package to handle intervals of time. I wanted to make use of Unitful.jl in this package but
-having two exported versions of `s` from Unitful and SIUnits (which SampledSignals uses) just doesn't work that well. (If/when SampledSignals is updated I may switch to it.)
+1. The `SampledSignals` package uses some out of date packages and aims to
+support some older versions of Julia. It also has a more ambitious scope, and
+seeks to represent many kinds of signals, not just sounds. The `Sounds` package
+uses the more modern [Unitful.jl](https://github.com/ajkeller34/Unitful.jl)
+package to handle units, and the
+[IntervalSets.jl](https://github.com/scheinerman/IntervalSets.jl) package to
+handle intervals of time. `SampledSignals` does not include the various
+sound manipulation routines available in `Sounds`.
 
-2. Unlike `AxisArray`, for a `Sound` when indexing in time or channel you don't need to explicitly specify the axis name.
+2. Unlike `AxisArray`, when indexing a `Sound` by time or channel you don't need to explicitly specify the axis name. There is no automatic promotion of sample rate or channel in `AxisArray`.
 
-However, if you want to use either of these other types, the code here is
-written generically enough that it should work relatively seamlessly with these other types. If you construct a sound using this package you can easily
-convert it to one of these other types by calling an appropriate constructor.
-(e.g. `SampleBuf(tone(1kHz,1s))` or `Sound(myaxis_array)`). However, bear in mind that SampledSignals exports symbols 
+If you want to use either of these other types with this package, many of the
+sound manipulation routines are written generically enough to handle any type
+(though some routines will convert to the result to a `Sound`). If you construct
+a sound using this package you can easily convert it to one of these other
+types, or vice versa, by calling an appropriate constructor.
+(e.g. `SampleBuf(tone(1kHz,1s))` or `Sound(myaxis_array)`). Bear in mind that
+`SampledSignals` exports some symbols that conflict with `Sounds` (e.g. it uses
+an older approach for representing units).
