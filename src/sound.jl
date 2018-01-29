@@ -25,6 +25,8 @@ struct Sound{R,T,C,N} <: AbstractArray{T,N}
             "Sounds channels ($C) and data columns ($size(x,2)) must match.")
     @assert(1 <= ndims(x) <= 2,
             "Sound arrays must have 1 or 2 dimensions.")
+    @assert(!(T <: Integer),
+            "Sounds cannot hold integer value ($T). Use `FixedPointNumbers` instead.")
     new{R,T,C,N}(x)
   end
 end
@@ -42,7 +44,7 @@ signals, or an array of size (N,2) for stereo sounds.
 """
 function Sound(x::AbstractArray;rate=samplerate())
   R = floor(Int,ustrip(inHz(rate)))
-  Sound(R,size(x,2),view(x,:,:))
+  Sound(R,size(x,2),x)
 end
 
 function Sound(x::Sound;rate=samplerate(x))
@@ -53,14 +55,12 @@ function Sound(x::Sound;rate=samplerate(x))
   end
 end
 
-function Base.convert(::Type{Sound{R,T}},x::Array{T}) where {R,T}
-  Sound(x[:,:],rate=R*Hz)
-end
+Base.convert(to::Type{<:Sound},x::Array) = convert(to,Sound(x,rate=R*Hz))
 
 function Base.convert(to::Type{Sound{R1,T1,C1}},
                       x::Sound{R2,T2,C2}) where {R1,R2,T1,T2,C1,C2}
   if R1 != R2
-    convert(to,resample(x,R1))
+    convert(to,resample(x,R1*Hz))
   elseif C1 != C2
     if C1 == 1
       convert(to,asmono(x))
@@ -68,21 +68,24 @@ function Base.convert(to::Type{Sound{R1,T1,C1}},
       convert(to,asstereo(x))
     end
   elseif T1 != T2
-    convert(to,Sound{R2,T1,C2}(convert(Array{T1},x.data)))
+    Sound(R1,C1,convert(Array{T1},x.data))
   else
     x
   end
 end
 
 """
+
     resample(x::Sound,new_rate;warn=true)
 
 Returns a new sound representing `x` at the given sampling rate.
 
 You will loose all frequencies in `x` that are above `new_rate/2` if you
 reduce the sampling rate. This will produce a warning unless `warn` is false.
+
 """
-function resample(x,new_rate;warn=true)
+
+function resample(x::Sound,new_rate::Quantity;warn=true)
   R = ustrip(inHz(Int,samplerate(x)))
   new_rate = floor(Int,ustrip(inHz(new_rate)))
   if new_rate < R && warn
@@ -94,13 +97,16 @@ function resample(x,new_rate;warn=true)
   end
 
   T = eltype(x)
-  @show new_rate // R
   if isstereo(x)
     Sound(new_rate,2,hcat(T.(resample(x.data[:,1],new_rate // R)),
                           T.(resample(x.data[:,2],new_rate // R))))
   else
     Sound(new_rate,1,T.(resample(x.data[:],new_rate // R)))
   end
+end
+
+function resample(x::Sound{R,T,C,N},new_rate::Real;warn=true) where {R,T,C,N}
+  resample(x,inHz(new_rate),warn=warn)
 end
 
 function Base.Array(x::Sound{R,T,C}) where {R,T,C}
@@ -212,15 +218,11 @@ isstereo(x::Sound) = !ismono(x)
 
 function Base.vcat(xs::Sound...)
   R = maximum(rtype.(xs))
-  @show R
   T = promote_type(map(eltype,xs)...)
-  @show T
   C = maximum(nchannels.(xs))
-  @show C
   ys = map(xs) do x
     convert(Sound{R,T,C},x)
   end
-  @show typeof.(ys)
 
   Sound(R,C,vcat(map(x -> x.data,ys)...))
 end
@@ -339,6 +341,14 @@ end
 @inline function setindex!(x::Sound,v,ixs::Int...)
   @boundscheck checkbounds(x.data,ixs...)
   @inbounds return setindex!(x.data,v,ixs...)
+end
+
+# special casing of single sample of a stereo sound (we need to represent
+# this with time as dim 1 and channel as dim 2, while a normal array
+# would return a vector.)
+@inline function getindex(x::StereoSound{R,T},i::Int,js::Union{Colon,Range}) where {R,T}
+  @boundscheck checkbounds(x.data,i,js)
+  @inbounds return Sound(R,2,getindex(x.data,i:i,js))
 end
 
 ############################################################

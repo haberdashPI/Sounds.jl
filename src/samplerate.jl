@@ -30,8 +30,8 @@ samplerate(x::Array) = samplerate()
 Assuming there is a `:time` axis for this axis array with regular interval
 time samples, returns the sampling rate of the signal in units of Hz.
 """
-samplerate(x::AxisArray) = samplerate_r(axis(x,Axis{:time}))
-samplerate_r(x::Range) = 1/step(x) * Hz
+samplerate(x::AxisArray) = samplerate_r(axisvalues(axes(x,Axis{:time}))[1])
+samplerate_r(x::Range) = 1/step(x)
 samplerate_r(x) =
   error("The `:time` axis must be defined by a `Range` for the samplerate to "*
         "be well defined.")

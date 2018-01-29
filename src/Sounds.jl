@@ -2,8 +2,8 @@ module Sounds
 
 using Lazy: @>>, @>, @_
 using Unitful
-import AxisArrays: AxisArray
-import SampledSignals: SampleBuf
+import AxisArrays: AxisArray, Axis, axes, axisvalues
+import SampledSignals: SampleBuf, nchannels
 
 export @>>, @>, @_
 
