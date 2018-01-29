@@ -110,7 +110,11 @@ function resample(x::Sound{R,T,C,N},new_rate::Real;warn=true) where {R,T,C,N}
 end
 
 function Base.Array(x::Sound{R,T,C}) where {R,T,C}
-  x.data
+  if C == 2
+    x.data
+  else # C == 1
+    vec(x.data)
+  end
 end
 
 """
