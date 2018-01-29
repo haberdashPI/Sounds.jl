@@ -3,7 +3,8 @@ using Unitful
 
 export samplerate, set_default_samplerate!, mix, mult, silence,
   envelope, noise, highpass, lowpass, bandpass, bandstop, tone, ramp,
-  harmonic_complex, amplify, rampon, rampoff, fadeto, irn, samplerate
+  harmonic_complex, amplify, rampon, rampoff, fadeto, irn, samplerate,
+  normpower
 
 """
     mix(x,y,...)
@@ -296,8 +297,8 @@ decibels
 amplify(x,dB) = x * (10^(dB/20))
 
 """
-    normalize(x)
+    normpower(x)
 
 Normalize the sound so it has a power of 1.
 """
-normalize(x) = x ./ sqrt(mean(x.^2))
+normpower(x::Sound) = x ./ sqrt.(mean(x.^2,1))
