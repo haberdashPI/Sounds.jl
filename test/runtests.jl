@@ -1,6 +1,6 @@
 using Sounds
 using AxisArrays
-using SampledSignals
+import SampledSignals: SampleBuf
 using Base.Test
 
 x = leftright(ramp(tone(1kHz,1s)),ramp(tone(1kHz,1s)))
@@ -78,6 +78,10 @@ end
 @inline same(x,y) = isapprox(x,y,rtol=1e-6)
 
 @testset "Sound Construction" begin
+  @test samplerate(mix(Sound(zeros(10)),Sound(zeros(10);rate=22050Hz))) ==
+    44100Hz
+  @test samplerate(mult(Sound(zeros(10)),Sound(zeros(10);rate=22050Hz))) ==
+    44100Hz
   @test samplerate([Sound(zeros(10)); Sound(zeros(10);rate=22050Hz)]) ==
     44100Hz
   @test nchannels([silence(200samples);x]) == 2
@@ -126,5 +130,3 @@ end
   @test samplerate(Sound(AxisArray(linspace(0,1,100),
                                    Axis{:time}(linspace(0,1,100)*s)))) == 98Hz
 end
-
-# TODO: add tests for interop with SampleBuf and AxisArray.

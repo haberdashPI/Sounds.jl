@@ -11,7 +11,8 @@ export samplerate, set_default_samplerate!, mix, mult, silence,
 mix several sounds together so that they play at the same time.
 
 Unlike normal addition, this acts as if each sound is padded with
-zeros at the end so that the lengths of all sounds match.
+zeros at the end so that the lengths of all sounds match and sounds
+of differing fidelity are promoted to the highest fidelity representation.
 """
 mix(xs...) = soundop(+,xs...)
 
@@ -22,20 +23,17 @@ Mutliply several sounds together. Typically used to apply an
 amplitude envelope.
 
 Unlike normal multiplication, this acts as if each sound is padded with
-ones at the end so that the lengths of all sounds match.
+ones at the end so that the lengths of all sounds match and sounds
+of differing fidelity are promoted to the highest fidelity representation.
 """
 mult(xs...) = soundop(*,xs...)
 
-function soundop(op,xs...)
-  channels = maximum(nchannels.(xs))
+function soundop(op,x_in...)
+  xs = promote_sounds(x_in...)
   len = maximum(nsamples.(xs))
-  rate = samplerate(xs[1])
-
-  @assert(all(samplerate.(xs) .== rate),
-          "Sounds had unmatched samplerates $(samplerate.(xs)).")
 
   sorted = sortperm(collect(nsamples.(xs)),rev=true)
-  y = similar(xs[1],(len,channels))
+  y = similar(xs[1],(len,nchannels(xs[1])))
   y .= xs[sorted[1]]
 
   for i in sorted[2:end]

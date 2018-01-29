@@ -216,18 +216,29 @@ True if the sound is stereo.
 """
 isstereo(x::Sound) = !ismono(x)
 
-function Base.vcat(xs::Sound...)
+"""
+    xs = promote_sounds(xs)
+
+Given a series of sounds, potentially with differing sample rates, bit rates
+and channels, promote all of them to the highest fidelity.
+"""
+function promote_sounds(xs::Sound...)
   R = maximum(rtype.(xs))
   T = promote_type(map(eltype,xs)...)
   C = maximum(nchannels.(xs))
-  ys = map(xs) do x
+
+  map(xs) do x
     convert(Sound{R,T,C},x)
   end
+end
+promote_sounds(xs::Sound{R,T,C,N}...) where {R,T,C,N} = xs
 
+function Base.vcat(xs::Sound...)
+  ys = promote_sounds(xs...)
+  R = rtype(ys[1])
+  C = nchannels(ys[1])
   Sound(R,C,vcat(map(x -> x.data,ys)...))
 end
-Base.vcat(xs::Sound{R,T,C,N}...) where {R,T,C,N} =
-  Sound(R,C,vcat(map(x -> x.data,xs)...))
 
 function Base.:(*)(x::Number,y::Sound)
   z = similar(y)
