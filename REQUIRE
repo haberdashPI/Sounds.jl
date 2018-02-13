@@ -6,3 +6,6 @@ FileIO
 Lazy
 SampledSignals
 AxisArrays
+IntervalSets
+Distributions
+LibSndFile
