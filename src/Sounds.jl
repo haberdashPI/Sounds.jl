@@ -18,8 +18,11 @@ function __init__()
 end
 
 @require PortAudio begin
-  const portaudio = PortAudioStream()
+  import PortAudio
   import SampledSignals
+  export play
+
+  const portaudio = PortAudio.PortAudioStream()
   play(x::Sound) = write(portaudio,SampledSignals.SampleBuf(x))
 end
 
