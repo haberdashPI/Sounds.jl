@@ -15,17 +15,6 @@ export sound, playable, duration, nchannels, nsamples, save, samplerate, length,
   samples, leftright, similar, left, right, resample,
   audiofn, .., ends, data, Sound, ismono, isstereo
 
-const timed_sound_version = 2
-
-let
-  version_in_file =
-    match(r"libtimed-sound\.([0-9]+)\.(dylib|dll)",timed_sound).captures[1]
-  if parse(Int,version_in_file) != timed_sound_version
-    error("Versions for weber sound driver do not match. Please run ",
-          "Pkg.build(\"Weber\").")
-  end
-end
-
 struct Sound{R,T,C,N} <: AbstractArray{T,N}
   data::AbstractArray{T,N}
   function Sound(R::Int,C::Int,x::AbstractArray{T,N}) where {T,N}
