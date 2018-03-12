@@ -1,6 +1,5 @@
 using FixedPointNumbers
 using FileIO
-using Lazy: @>, @>>
 using IntervalSets
 
 import FileIO: save

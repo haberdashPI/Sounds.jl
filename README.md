@@ -5,20 +5,22 @@
 <!-- [![TravisCI Status](https://travis-ci.org/haberdashPI/Weber.jl.svg?branch=master)](https://travis-ci.org/haberdashPI/Weber.jl) -->
 <!-- [![](https://img.shields.io/badge/docs-stable-blue.svg)](https://haberdashPI.github.io/Weber.jl/stable) -->
 
-Sounds is a package that provides a simple interface to create sounds and
-some methods to manipulate those sounds.
+Sounds is a package that aims to provide a clean interface for generating and manipulating sounds.
 
 ```julia
 using Sounds
 
 # create a pure tone 20 dB below a power 1 signal
-sound1 = @> tone(1kHz,5s) normalize amplify(-20)
+sound1 = tone(1kHz,5s) |> normpower |> amplify(-20dB)
 
 # load a sound from a file
 sound2 = Sound("mysound.wav")
 
 # create a sawtooth wave 
-sound3 = @> Sound(t -> 1000t .% 1,2s) normalize amplify(-20)
+sound3 = Sound(t -> 1000t .% 1,2s) |> normpower |> amplify(-20dB)
+
+# create a 5Hz amplitude modulated noise
+sound4 = noise(2s) |> envelope(tone(5Hz,2s)) |> normpower |> amplify(-20dB)
 ```
 
 Sounds work much like arrays, and in addition to the normal ways of indexing an
@@ -45,18 +47,19 @@ description of available methods.
 Once you've created a sound you can use [PortAudio.jl](https://github.com/JuliaAudio/PortAudio.jl) or **TODO_CHANGE**[TimedPortAudio.jl](https://github.com/haberdashPI/TimedPortAudio.jl) to play the sounds, or you can just save the sound.
 
 ```julia
-sound1 = @> tone(1kHz,5s) normalize amplify(-20)
-
-using TimedPortAudio
-play(sound1)
-
-using PortAudio
-using SampledSignals
-stream = PortAudioStream("Built-in Microph", "Built-in Output")
-write(stream,SampleBuf(sound1))
+sound1 = tone(1kHz,5s) |> normpower |> amplify(-20dB)
 
 using FileIO
 save("puretone.wav",sound1)
+
+# **EITHER***
+using PortAudio
+play(sound1)
+
+## **OR**
+using TimedSound
+play(sound1)
+
 ```
 
 # Alternative Solutions

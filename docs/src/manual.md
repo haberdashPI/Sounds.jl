@@ -25,26 +25,25 @@ For instance, to create a 1 kHz tone for 1 second inside of a noise with a notch
 ```julia
 mysound = tone(1kHz,1s)
 mysound = ramp(mysound)
-mysound = normalize(mysound)
+mysound = normpower(mysound)
 mysound = amplify(mysound,-20)
 
 mynoise = noise(1s)
 mynoise = bandstop(mynoise,0.5kHz,1.5kHz)
-mynoise = normalize(mysound)
+mynoise = normpower(mysound)
 mynoise = amplify(mynoise,-25)
 
 scene = mix(mysound,mynoise)
 ```
 
-TimedSound exports the macro `@>` (from [Lazy.jl](https://github.com/MikeInnes/Lazy.jl#macros)) to simplify this pattern. It is easiest to understand the macro by example: the below code yields the same result as the code above.
+Combined with julia's `|>` syntax, and the function currying implemented in Sounds, the above code can be simplified as follows.
 
 ```juila
-mytone = @> tone(1kHz,1s) ramp normalize amplify(-20)
-mynoise = @> noise(1s) bandstop(0.5kHz,1.5kHz) normalize amplify(-25)
-scene = mix(mytone,mynoise))
+mytone = tone(1kHz,1s) |> ramp |> normpower |> amplify(-20dB)
+mynoise = noise(1s) |> bandstop(0.5kHz,1.5kHz) |> normpower |>
+  amplify(-25dB)
+scene = mix(mytone,mynoise)
 ```
-
-TimedSound also exports `@>>`, and `@_` (refer to [Lazy.jl](https://github.com/MikeInnes/Lazy.jl#macros) for details).
 
 ### Sounds are arrays
 

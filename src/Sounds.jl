@@ -1,9 +1,7 @@
 module Sounds
 
-using Lazy: @>>, @>, @_
 using Unitful
 using Requires
-export @>>, @>, @_
 
 include(joinpath(@__DIR__,"units.jl"))
 include(joinpath(@__DIR__,"sound.jl"))

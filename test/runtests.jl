@@ -1,7 +1,7 @@
 using Sounds
 using Base.Test
 
-x = leftright(ramp(tone(1kHz,1s)),ramp(tone(1kHz,1s)))
+x = leftright(tone(1kHz,1s) |> ramp,tone(1kHz,1s) |> ramp)
 rng() = MersenneTwister(1983)
 
 show_str = "1.0 s 64 bit floating-point stereo sound
@@ -79,7 +79,7 @@ end
 @testset "Sound Construction" begin
   @test samplerate(mix(Sound(zeros(10)),Sound(zeros(10);rate=22050Hz))) ==
     44100Hz
-  @test samplerate(mult(Sound(zeros(10)),Sound(zeros(10);rate=22050Hz))) ==
+  @test samplerate(envelope(Sound(zeros(10)),Sound(zeros(10);rate=22050Hz))) ==
     44100Hz
   @test samplerate([Sound(zeros(10)); Sound(zeros(10);rate=22050Hz)]) ==
     44100Hz
@@ -106,20 +106,20 @@ end
   @test [tone(1kHz,0.2s); leftright(tone(1.5kHz,0.2s),tone(0.5kHz,0.2s))] ==
     [leftright(tone(1kHz,0.2s),   tone(1kHz,0.2s));
      leftright(tone(1.5kHz,0.2s), tone(0.5kHz,0.2s))]
-  @test_throws ErrorException ramp(tone(1kHz,50ms),100ms)
+  @test_throws ErrorException tone(1kHz,50ms) |> ramp(100ms)
   @test_throws AssertionError Sound(t -> fill(0,size(t)),10ms)
-  @test same(Sound("sounds/rampon.wav"),rampon(tone(1kHz,1s)))
-  @test same(Sound("sounds/rampoff.wav"),rampoff(tone(1kHz,1s)))
+  @test same(Sound("sounds/rampon.wav"),tone(1kHz,1s) |> rampon)
+  @test same(Sound("sounds/rampoff.wav"),tone(1kHz,1s) |> rampoff)
   @test same(Sound("sounds/fadeto.wav"),
-             fadeto(tone(1kHz,0.5s),tone(2kHz,0.5s)))
+             tone(1kHz,0.5s) |> fadeto(tone(2kHz,0.5s)))
   @test fadeto(leftright(tone(1kHz,100ms),tone(1.5kHz,100ms)),
                tone(2kHz,100ms)) != 0
   @test same(Sound("sounds/noise.wav"),noise(1s,rng=rng()))
   @test same(Sound("sounds/bandpass.wav"),
-             @> noise(1s,rng=rng()) bandpass(400Hz,800Hz))
+             noise(1s,rng=rng()) |> bandpass(400Hz,800Hz))
   @test same(Sound("sounds/complex.wav"),
-             @>(harmonic_complex(200Hz,0:5,ones(6),1s),normalize,
-                amplify(-20dB)))
+             harmonic_complex(200Hz,0:5,ones(6),1s) |> normalize |>
+             amplify(-20dB))
 end
 
 # tests conditional on presence of AxisArray and/or SampledSignals

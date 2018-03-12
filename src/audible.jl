@@ -6,19 +6,24 @@ export samplerate, set_default_samplerate!, mix, envelope, silence,
   harmonic_complex, amplify, rampon, rampoff, fadeto, irn, samplerate,
   normpower
 
+
+
 """
-    mix(x,y,...)
+    mix(x,...)
 
 Add several sounds together so that they play at the same time.
 
 Unlike normal addition, this acts as if each sound is padded with
 zeros at the end so that the lengths of all sounds match and sounds
 of differing fidelity are promoted to the highest fidelity representation.
+
+With one argument `x`, this returns a function `f(y)` that mixes `y` with `x`
 """
 mix(xs...) = soundop(+,xs...)
+mix(x) = y -> mix(x,y)
 
 """
-    envelope(x,y)
+    envelope([x],y)
 
 Mutliply several sounds together. Typically used to apply an
 amplitude envelope x to sound y.
@@ -26,8 +31,11 @@ amplitude envelope x to sound y.
 Unlike normal multiplication, this acts as if each sound is padded with
 ones at the end so that the lengths of all sounds match and sounds
 of differing fidelity are promoted to the highest fidelity representation.
+
+With one argument `x`, this returns a function `f(y)` that multiplies `y` with `x`
 """
-mult(xs...) = soundop(*,xs...)
+envelope(x,y) = soundop(*,x,y)
+envelope(x) = y -> envelope(x,y)
 
 function soundop(op,x_in...)
   xs = promote_sounds(x_in...)
@@ -149,40 +157,56 @@ function irn_helper(source,n,λ,g,rng)
 end
 
 """
-    bandpass(x,low,high;[order=5])
+    bandpass([x],low,high;[order=5])
 
 Band-pass filter the sound at the specified frequencies.
 
 Filtering uses a butterworth filter of the given order.
+
+With two positional arguments this returns a function f(x)
+that applies the filter on x.
 """
 bandpass(x,low,high;order=5) = filter_helper(x,low,high,Bandpass,order)
+bandpass(low,high;order=5) = x -> bandpass(x,low,high,order=order)
 
 """
-    bandstop(x,low,high,[order=5])
+    bandstop([x],low,high,[order=5])
 
 Band-stop filter of the sound at the specified frequencies.
 
 Filtering uses a butterworth filter of the given order.
+
+With two positional arguments this returns a function f(x)
+that applies the filter on x.
 """
 bandstop(x,low,high;order=5) = filter_helper(x,low,high,Bandstop,order)
+bandstop(low,high;order=5) = x -> bandstop(x,low,high,order=order)
 
 """
-    lowpass(x,low,[order=5])
+    lowpass([x],low,[order=5])
 
 Low-pass filter the sound at the specified frequency.
 
 Filtering uses a butterworth filter of the given order.
+
+With two positional arguments this returns a function f(x)
+that applies the filter on x.
 """
 lowpass(x,low;order=5) = filter_helper(x,low,0,Lowpass,order)
+lowpass(low,high;order=5) = x -> lowpass(x,low,high,order=order)
 
 """
-    highpass(x,high,[order=5])
+    highpass([x],high,[order=5])
 
 High-pass filter the sound at the specified frequency.
 
 Filtering uses a butterworth filter of the given order.
+
+With two positional arguments this returns a function f(x)
+that applies the filter on x.
 """
 highpass(x,high;order=5) = filter_helper(x,0,high,Highpass,order)
+highpass(low,high;order=5) = x -> highpass(x,low,high,order=order)
 
 function buildfilt(samplerate,low,high,kind)
   if kind == Bandpass
@@ -203,16 +227,19 @@ function filter_helper(sound,low,high,kind,order)
 end
 
 """
-    ramp(x,[length=5ms])
+    ramp([x],[length=5ms])
 
 Applies a half cosine ramp to start and end of the sound.
 
 Ramps prevent clicks at the start and end of sounds.
+
+When passed no argument or a length, this returns a function f(x)
+which applies the specified ramp to the sound `x`.
 """
-function ramp(x,len=5ms)
-  ramp_n = insamples(len,samplerate(x))
+function ramp(x::AbstractArray,length=5ms)
+  ramp_n = insamples(length,samplerate(x))
 	if nsamples(x) < 2ramp_n
-    error("Cannot apply two $(rounded_time(len,samplerate(x))) ramps to ",
+    error("Cannot apply two $(rounded_time(length,samplerate(x))) ramps to ",
           "$(rounded_time(duration(x),samplerate(x))) sound.")
   end
 
@@ -224,35 +251,42 @@ function ramp(x,len=5ms)
       1.0,
       -0.5.*cos.(π.*(t .- n .+ ramp_n)./ramp_n.+π).+0.5))
 	end
-	mult(x,r)
+	envelope(x,r)
 end
+ramp(length=5ms) = x -> ramp(x,length)
 
 """
-    rampon(sound,[len=5ms])
+    rampon([sound],[length=5ms])
 
 Applies a half consine ramp to start of the sound.
+
+When passed no argument or a length, this returns a function f(x)
+which applies the specified ramp to the sound `x`.
 """
-function rampon(x,len=5ms)
-  ramp_n = insamples(len,samplerate(x))
+function rampon(x::AbstractArray,length=5ms)
+  ramp_n = insamples(length,samplerate(x))
 	if nsamples(x) < ramp_n
-    error("Cannot apply a $(rounded_time(len,samplerate(x))) ramp to ",
+    error("Cannot apply a $(rounded_time(length,samplerate(x))) ramp to ",
           "$(rounded_time(duration(x),samplerate(x))) sound.")
   end
 
 	r = Sound(ramp_n*samples,false,rate=samplerate(x)) do t
     -0.5.*cos.(π.*t./ramp_n).+0.5
 	end
-	mult(x,r)
+	envelope(x,r)
 end
+rampon(length=5ms) = x -> rampon(x,length=length)
 
 """
-    rampoff(sound,[len=5ms])
+    rampoff([sound],[length=5ms])
 
 Applies a half consine ramp to the end of the sound.
-"""
 
-function rampoff(x,len=5ms)
-  len_s = insamples(len,samplerate(x))
+With no positional arguments this returns a function f(x) that
+applies the ramp to x.
+"""
+function rampoff(x::AbstractArray,length=5ms)
+  len_s = insamples(length,samplerate(x))
   after = nsamples(x)
 
   R = ustrip(samplerate(x))
@@ -271,33 +305,42 @@ function rampoff(x,len=5ms)
 	r = Sound(after*samples,false) do t
     ifelse.(t .< rampstart,1,-0.5.*cos.(π.*(t.-rampstart)./len_s.+π).+0.5)
 	end
-	mult(x,r)
+	envelope(x,r)
 end
+rampoff(length=5ms) = x -> rampon(x,length=length)
 
 """
-    fadeto(a,b,[transition=50ms],[after=overlap])
+    fadeto([a],[b],[transition=50ms])
 
 A smooth transition from a to b, overlapping the end of one
 with the start of the other by `overlap`.
+
+With only one sound `a` specified, this returns a function `f(b)` that fades
+from `a` to `b`.
 """
-function fadeto(a,b,transition=50ms)
+function fadeto(a::AbstractArray,b::AbstractArray,transition=50ms)
   @assert(samplerate(a) == samplerate(b),
           "Sounds must have the same sample rate.")
   mix(rampoff(a,transition),
       [silence(duration(a) - transition,rate=samplerate(a));
        rampon(b,transition)])
 end
+fadeto(b::AbstractArray,transition=50ms) = a -> fadeto(a,b,transition)
 
 """
-    amplify(x,ratio)
+    amplify([x],ratio)
 
 Amplify (positive) or attenuate (negative) the sound by a given ratio, typically
 specified in decibels (e.g. amplify(x,10dB)).
 
 *Note*: you can also directly multiply by a factor, e.g. x * 10dB,
 which has the same effect as this function.
+
+With one position argument `ratio` this returns a function which scales its
+input by th given ratio.
 """
 amplify(x,ratio) = x*uconvertrp(unit(1),ratio)
+amplify(ratio) = x -> amplify(x,ratio)
 
 """
     normpower(x)
