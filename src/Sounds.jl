@@ -2,9 +2,6 @@ module Sounds
 
 using Lazy: @>>, @>, @_
 using Unitful
-import AxisArrays: AxisArray, Axis, axes, axisvalues
-import SampledSignals: SampleBuf, nchannels
-
 export @>>, @>, @_
 
 include(joinpath(@__DIR__,"units.jl"))

@@ -1,4 +1,6 @@
-import SampledSignals: samplerate
+@require SampledSignals begin
+  import SampledSignals: samplerate
+end
 
 const default_sample_rate = fill(44100.0Hz)
 
@@ -24,18 +26,19 @@ Yields the same result as `samplerate()`.
 """
 samplerate(x::Array) = samplerate()
 
-"""
-    samplerate(::AxisArray)
+@require AxisArrays begin
+  """
+        samplerate(::AxisArray)
 
-Assuming there is a `:time` axis for this axis array with regular interval
-time samples, returns the sampling rate of the signal in units of Hz.
-"""
-samplerate(x::AxisArray) = samplerate_r(axisvalues(axes(x,Axis{:time}))[1])
-samplerate_r(x::Range) = 1/step(x)
-samplerate_r(x) =
-  error("The `:time` axis must be defined by a `Range` for the samplerate to "*
-        "be well defined.")
-
+    Assuming there is a `:time` axis for this axis array with regular interval
+    time samples, returns the sampling rate of the signal in units of Hz.
+    """
+  samplerate(x::AxisArray) = samplerate_r(axisvalues(axes(x,Axis{:time}))[1])
+  samplerate_r(x::Range) = 1/step(x)
+  samplerate_r(x) =
+    error("The `:time` axis must be defined by a `Range` for the samplerate to "*
+          "be well defined.")
+end
 
 """
     samplerate(::Sound)

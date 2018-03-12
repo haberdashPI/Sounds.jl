@@ -11,11 +11,20 @@ import Base: setindex!, getindex
 
 import Distributions: nsamples
 
-import SampledSignals: SampleBuf
-
 export sound, playable, duration, nchannels, nsamples, save, samplerate, length,
   samples, leftright, similar, left, right, resample,
   audiofn, .., ends, data, Sound, ismono, isstereo
+
+const timed_sound_version = 2
+
+let
+  version_in_file =
+    match(r"libtimed-sound\.([0-9]+)\.(dylib|dll)",timed_sound).captures[1]
+  if parse(Int,version_in_file) != timed_sound_version
+    error("Versions for weber sound driver do not match. Please run ",
+          "Pkg.build(\"Weber\").")
+  end
+end
 
 struct Sound{R,T,C,N} <: AbstractArray{T,N}
   data::AbstractArray{T,N}
@@ -26,7 +35,8 @@ struct Sound{R,T,C,N} <: AbstractArray{T,N}
     @assert(1 <= ndims(x) <= 2,
             "Sound arrays must have 1 or 2 dimensions.")
     @assert(!(T <: Integer),
-            "Sounds cannot hold integer value ($T). Use `FixedPointNumbers` instead.")
+            "Sounds cannot hold integer value ($T). "*
+            "Use `FixedPointNumbers` instead.")
     new{R,T,C,N}(x)
   end
 end
@@ -80,8 +90,9 @@ end
 
 Returns a new sound representing `x` at the given sampling rate.
 
-You will loose all frequencies in `x` that are above `new_rate/2` if you
-reduce the sampling rate. This will produce a warning unless `warn` is false.
+If you reduce the sampling rate, you will loose all frequencies in `x` that are
+above `new_rate/2`. Reducing the sampling rate will produce a warning unless
+`warn` is false.
 
 """
 
@@ -126,30 +137,33 @@ Sound(file::File) = Sound(load(file))
 Sound(file::String) = Sound(load(file))
 Sound(stream::IOStream) = Sound(load(stream))
 
-"""
-    Sound(x::SampledSignals.SampleBuf)
+@require SampledSignals begin
+  """
+      Sound(x::SampledSignals.SampleBuf)
 
-Convert `SampleBuf` to `Sound` object, without copying data.
-"""
-Sound(x::SampleBuf) = Sound(x.data,rate=samplerate(x)*Hz)
-
-"""
-    Sound(x::AxisArray)
-
-Convert `AxisArray` to `Sound` object. Avoids copying data when possible
-(e.g. when underlying data is an `Array` object).
-"""
-Sound(x::AxisArray) = Sound(x.data,rate=samplerate(x))
-
-save(file::Union{AbstractString,IO},sound::Sound) = save(file,SampleBuf(sound))
-
-SampleBuf(x::Sound) = SampleBuf(x.data,float(ustrip(samplerate(x))))
-function AxisArray(x::Sound)
-  time_axis = Axis{:time}(((1:nsamples(x))-1)/samplerate(x))
-  ismono(x) ? AxisArray(x,time_axis) :
-    AxisArray(x,time_axis,Axis{:channel}([:left,:right]))
+  Convert `SampleBuf` to `Sound` object, without copying data.
+  """
+  Sound(x::SampleBuf) = Sound(x.data,rate=samplerate(x)*Hz)
 end
 
+@require AxisArray begin
+  """
+      Sound(x::AxisArray)
+
+  Convert `AxisArray` to `Sound` object. Avoids copying data when possible
+  (e.g. when underlying data is an `Array` object).
+  """
+  Sound(x::AxisArray) = Sound(x.data,rate=samplerate(x))
+
+  save(file::Union{AbstractString,IO},sound::Sound) = save(file,SampleBuf(sound))
+
+  SampleBuf(x::Sound) = SampleBuf(x.data,float(ustrip(samplerate(x))))
+  function AxisArray(x::Sound)
+    time_axis = Axis{:time}(((1:nsamples(x))-1)/samplerate(x))
+    ismono(x) ? AxisArray(x,time_axis) :
+      AxisArray(x,time_axis,Axis{:channel}([:left,:right]))
+  end
+end
 
 """
     Sound(fn,len,asseconds=true;rate=samplerate(),offset=0s)
@@ -177,10 +191,10 @@ end
 
 
 """
-    duration(x)
+    duration(x;rate=samplerate(x))
 
 Returns the duration of the sound. If passed an `Array`, takes a
-keyword argument `rate=samplerate()`.
+keyword argument `rate=samplerate(x)`.
 """
 function duration(x;rate=samplerate(x))
   uconvert(s,nsamples(x) / inHz(rate))
@@ -200,7 +214,7 @@ asstereo(x::Sound{R,T,2}) where {R,T} = x
 """
     asmono(x)
 
-Returns a monaural version of a sound (whether it is stereo or manaural).
+Returns a monaural version of a sound (whether it is stereo or monaural).
 """
 asmono(x::Sound{R,T,1}) where {R,T} = x
 asmono(x::Sound{R,T,2}) where {R,T} = mix(left(x),right(x))
@@ -285,8 +299,6 @@ Extract the left channel of a sound. For monaural sounds, `left` and `right`
 return the same value.
 """
 left(sound::Sound) = sound[:left]
-left(sound::AxisArray) =
-    size(data,2) == 1 ? sound : sound[Axis{:channel}(:left)]
 
 """
     right(sound)
@@ -295,8 +307,6 @@ Extract the right channel of a sound. For monaural sounds, `left` and `right`
 return the same value.
 """
 right(sound::Sound) = sound[:right]
-right(sound::AxisArray) =
-    size(data,2) == 1 ? sound : sound[Axis{:channel}(:right)]
 
 # adapted from:
 # https://github.com/JuliaAudio/SampledSignals.jl/blob/0a31806c3f7d382c9aa6db901a83e1edbfac62df/src/SampleBuf.jl#L109-L139

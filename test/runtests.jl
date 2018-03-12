@@ -1,6 +1,4 @@
 using Sounds
-using AxisArrays
-import SampledSignals: SampleBuf
 using Base.Test
 
 x = leftright(ramp(tone(1kHz,1s)),ramp(tone(1kHz,1s)))
@@ -122,11 +120,12 @@ end
              @>(harmonic_complex(200Hz,0:5,ones(6),1s),normalize,amplify(-20)))
 end
 
-@testset "Sound Interop" begin
-  @test AxisArray(x)[Axis{:channel}(:left)] == x[:left]
-  @test samplerate(AxisArray(x)) == 44100Hz
-  @test SampleBuf(x) == x
-  @test samplerate(SampleBuf(x)) == 44100.0
-  @test samplerate(Sound(AxisArray(linspace(0,1,100),
-                                   Axis{:time}(linspace(0,1,100)*s)))) == 98Hz
-end
+# tests conditional on presence of AxisArray and/or SampledSignals
+# @testset "Sound Interop" begin
+#   @test AxisArray(x)[Axis{:channel}(:left)] == x[:left]
+#   @test samplerate(AxisArray(x)) == 44100Hz
+#   @test SampleBuf(x) == x
+#   @test samplerate(SampleBuf(x)) == 44100.0
+#   @test samplerate(Sound(AxisArray(linspace(0,1,100),
+#                                    Axis{:time}(linspace(0,1,100)*s)))) == 98Hz
+# end
