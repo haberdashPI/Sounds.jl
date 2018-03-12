@@ -118,7 +118,8 @@ end
   @test same(Sound("sounds/bandpass.wav"),
              @> noise(1s,rng=rng()) bandpass(400Hz,800Hz))
   @test same(Sound("sounds/complex.wav"),
-             @>(harmonic_complex(200Hz,0:5,ones(6),1s),normalize,amplify(-20)))
+             @>(harmonic_complex(200Hz,0:5,ones(6),1s),normalize,
+                amplify(-20dB)))
 end
 
 # tests conditional on presence of AxisArray and/or SampledSignals

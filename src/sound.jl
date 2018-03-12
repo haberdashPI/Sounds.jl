@@ -251,13 +251,15 @@ end
 
 function Base.:(*)(x::Number,y::Sound)
   z = similar(y)
-  z .= x .* y
+  z .= uconvertrp(unit(1),x) .* y
 end
 
 function Base.:(*)(y::Sound,x::Number)
   z = similar(y)
-  z .= x .* y
+  z .= uconvertrp(unit(1),x) .* y
 end
+
+Base.:(/)(y::Sound,x::Number) = y * (1/unconvertrp(unit(1),x))
 
 """
     duration(x)

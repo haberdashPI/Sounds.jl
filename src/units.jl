@@ -1,6 +1,6 @@
 using Unitful
-import Unitful: ms, s, kHz, Hz
-export ms, s, kHz, Hz, samples, uconvert, ustrip, inseconds, inHz, insamples
+import Unitful: ms, s, kHz, Hz, dB
+export dB, ms, s, kHz, Hz, samples, uconvert, ustrip, inseconds, inHz, insamples
 
 const TimeDim = Unitful.Dimensions{(Unitful.Dimension{:Time}(1//1),)}
 const FreqDim = Unitful.Dimensions{(Unitful.Dimension{:Time}(-1//1),)}

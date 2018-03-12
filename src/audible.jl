@@ -1,7 +1,7 @@
 using DSP
 using Unitful
 
-export samplerate, set_default_samplerate!, mix, mult, silence,
+export samplerate, set_default_samplerate!, mix, envelope, silence,
   envelope, noise, highpass, lowpass, bandpass, bandstop, tone, ramp,
   harmonic_complex, amplify, rampon, rampoff, fadeto, irn, samplerate,
   normpower
@@ -9,7 +9,7 @@ export samplerate, set_default_samplerate!, mix, mult, silence,
 """
     mix(x,y,...)
 
-mix several sounds together so that they play at the same time.
+Add several sounds together so that they play at the same time.
 
 Unlike normal addition, this acts as if each sound is padded with
 zeros at the end so that the lengths of all sounds match and sounds
@@ -18,10 +18,10 @@ of differing fidelity are promoted to the highest fidelity representation.
 mix(xs...) = soundop(+,xs...)
 
 """
-    mult(x,y,...)
+    envelope(x,y)
 
 Mutliply several sounds together. Typically used to apply an
-amplitude envelope.
+amplitude envelope x to sound y.
 
 Unlike normal multiplication, this acts as if each sound is padded with
 ones at the end so that the lengths of all sounds match and sounds
@@ -289,13 +289,15 @@ function fadeto(a,b,transition=50ms)
 end
 
 """
-    amplify(x,dB)
+    amplify(x,ratio)
 
-Amplify (positive) or attenuate (negative) the sound by a given number of
-decibels
+Amplify (positive) or attenuate (negative) the sound by a given ratio, typically
+specified in decibels (e.g. amplify(x,10dB)).
 
+*Note*: you can also directly multiply by a factor, e.g. x * 10dB,
+which has the same effect as this function.
 """
-amplify(x,dB) = x * (10^(dB/20))
+amplify(x,ratio) = x*uconvertrp(unit(1),ratio)
 
 """
     normpower(x)
