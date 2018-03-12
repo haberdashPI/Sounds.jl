@@ -2,6 +2,7 @@ module Sounds
 
 using Lazy: @>>, @>, @_
 using Unitful
+using Requires
 export @>>, @>, @_
 
 include(joinpath(@__DIR__,"units.jl"))
@@ -20,4 +21,6 @@ end
   const portaudio = PortAudioStream()
   import SampledSignals
   play(x::Sound) = write(portaudio,SampledSignals.SampleBuf(x))
+end
+
 end

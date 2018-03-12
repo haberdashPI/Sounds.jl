@@ -127,15 +127,18 @@ Sound(file::String) = Sound(load(file))
 Sound(stream::IOStream) = Sound(load(stream))
 
 @require SampledSignals begin
+  import SampledSignals: SampleBuf
   """
       Sound(x::SampledSignals.SampleBuf)
 
   Convert `SampleBuf` to `Sound` object, without copying data.
   """
   Sound(x::SampleBuf) = Sound(x.data,rate=samplerate(x)*Hz)
+  SampleBuf(x::Sound) = SampleBuf(x.data,float(ustrip(samplerate(x))))
 end
 
 @require AxisArray begin
+  using AxisArrays
   """
       Sound(x::AxisArray)
 
@@ -146,8 +149,7 @@ end
 
   save(file::Union{AbstractString,IO},sound::Sound) = save(file,SampleBuf(sound))
 
-  SampleBuf(x::Sound) = SampleBuf(x.data,float(ustrip(samplerate(x))))
-  function AxisArray(x::Sound)
+  function AxisArrays.AxisArray(x::Sound)
     time_axis = Axis{:time}(((1:nsamples(x))-1)/samplerate(x))
     ismono(x) ? AxisArray(x,time_axis) :
       AxisArray(x,time_axis,Axis{:channel}([:left,:right]))
