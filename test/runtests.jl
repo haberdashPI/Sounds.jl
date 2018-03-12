@@ -31,7 +31,8 @@ Sampled at 44100 Hz
   myend = (0.1s + duration(x[0.5s .. ends]))
   @test (newx[0.5s .. ends] = x[0.1s .. myend]) == x[0.1s .. myend]
   @test (newx[0.5s .. ends,:] = x[0.1s .. myend,:]) == x[0.1s .. myend,:]
-  @test (newx[0.1s .. 0.6s,:] = x[0.2s .. 0.700005s,:]) == x[0.2s .. 0.700005s,:]
+  @test (newx[0.1s .. 0.6s,:] = x[0.2s .. 0.700005s,:]) ==
+    x[0.2s .. 0.700005s,:]
 
   @test x[0s .. 22050samples,:] == x[0s .. 0.5s,:]
   @test x[22050samples .. 44100samples,:] == x[0.5s .. 1s,:]

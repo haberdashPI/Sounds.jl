@@ -5,8 +5,8 @@
 <!-- [![TravisCI Status](https://travis-ci.org/haberdashPI/Weber.jl.svg?branch=master)](https://travis-ci.org/haberdashPI/Weber.jl) -->
 <!-- [![](https://img.shields.io/badge/docs-stable-blue.svg)](https://haberdashPI.github.io/Weber.jl/stable) -->
 
-Sounds provides a simple interface to create sounds and variety of means to manipulate
-those sounds.
+Sounds is a package that provides a simple interface to create sounds and
+some methods to manipulate those sounds.
 
 ```julia
 using Sounds
@@ -29,18 +29,20 @@ array, you can also access parts of a sound using
 ```julia
 sound1[1s .. 2s,:left]
 sound1[3s .. ends,:right]
+sound1[200ms .. 500ms]
+sound1[:right]
 leftright(sound1[0s .. 1s,:left],sound2[1s .. 2s,:right])
 ```
 
 When working with multiple sounds, methods in this package "just work". If the
 sounds have a different number of channels, a different sampling rate or different bit
 rate, the sounds are first promoted to the highest fidelity representation, and then
-the given method is applied to this promoted representation.
+the given method is applied over the promoted representation.
 
 See the [documentation](https://haberdashPI.github.io/Sounds.jl/latest) for a complete
 description of available methods.
 
-Once you've created a sound you can use [PortAudio.jl](https://github.com/JuliaAudio/PortAudio.jl) or [TimedPortAudio.jl](https://github.com/haberdashPI/TimedPortAudio.jl) to play the sounds, or you can just save the sound.
+Once you've created a sound you can use [PortAudio.jl](https://github.com/JuliaAudio/PortAudio.jl) or **TODO_CHANGE**[TimedPortAudio.jl](https://github.com/haberdashPI/TimedPortAudio.jl) to play the sounds, or you can just save the sound.
 
 ```julia
 sound1 = @> tone(1kHz,5s) normalize amplify(-20)
@@ -64,22 +66,22 @@ There are two other ways you might represent sounds in Julia,
 [SampledSignals.jl](https://github.com/JuliaAudio/SampledSignals.jl). A `Sound`
 differs from these solutions in a number of ways.
 
-1. The `SampledSignals` package uses some out of date packages and aims to
-support some older versions of Julia. It also has a more ambitious scope, and
-seeks to represent many kinds of signals, not just sounds. The `Sounds` package
-uses the more modern [Unitful.jl](https://github.com/ajkeller34/Unitful.jl)
-package to handle units, and the
-[IntervalSets.jl](https://github.com/scheinerman/IntervalSets.jl) package to
-handle intervals of time. `SampledSignals` does not include the various
-sound manipulation routines available in `Sounds`.
+1. As of the last update to `Sounds`, the `SampledSignals` package uses some out
+   of date packages and aims to support some older versions of Julia. It also
+   has a more ambitious scope, and seeks to represent many kinds of signals, not
+   just sounds. `SampledSignals` does not include the various sound manipulation
+   routines available in `Sounds`.
 
-2. Unlike `AxisArray`, when indexing a `Sound` by time or channel you don't need to explicitly specify the axis name. There is no automatic promotion of sample rate or channel in `AxisArray`.
+2. Once you create an `AxisArray`, the interface is very similar to a `Sound`
+   but, as a more generic interface, it requires you to explicitly specify the
+   axes you want to use when constructing a sound. There is no automatic
+   promotion of the sample rate or channel when using `AxisArray`'s.
 
-If you want to use either of these other types with this package, many of the
-sound manipulation routines are written generically enough to handle any type
+If you want to use either of these other packages with `Sounds`, many of the
+sound manipulation routines provided are written generically enough to handle any type
 (though some routines will convert to the result to a `Sound`). If you construct
 a sound using this package you can easily convert it to one of these other
 types, or vice versa, by calling an appropriate constructor.
 (e.g. `SampleBuf(tone(1kHz,1s))` or `Sound(myaxis_array)`). Bear in mind that
-`SampledSignals` exports some symbols that conflict with `Sounds` (e.g. it uses
-an older approach for representing units).
+`SampledSignals` may export some symbols that conflict with `Sounds` (e.g. last
+time I checked it uses an older approach for representing units).
