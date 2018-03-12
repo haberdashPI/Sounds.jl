@@ -19,4 +19,8 @@ function __init__()
   merge!(Unitful.promotion, localpromotion)
 end
 
+@require PortAudio begin
+  const portaudio = PortAudioStream()
+  import SampledSignals
+  play(x::Sound) = write(portaudio,SampledSignals.SampleBuf(x))
 end
