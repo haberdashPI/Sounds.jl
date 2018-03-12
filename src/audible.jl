@@ -284,7 +284,8 @@ function fadeto(a,b,transition=50ms)
   @assert(samplerate(a) == samplerate(b),
           "Sounds must have the same sample rate.")
   mix(rampoff(a,transition),
-      [silence(duration(a) - transition,rate=samplerate(a)); rampon(b,transition)])
+      [silence(duration(a) - transition,rate=samplerate(a));
+       rampon(b,transition)])
 end
 
 """
