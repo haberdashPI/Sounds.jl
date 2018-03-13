@@ -27,6 +27,7 @@ Yields the same result as `samplerate()`.
 samplerate(x::Array) = samplerate()
 
 @require AxisArrays begin
+  using AxisArrays
   """
         samplerate(::AxisArray)
 
