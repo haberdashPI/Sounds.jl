@@ -193,7 +193,7 @@ With two positional arguments this returns a function f(x)
 that applies the filter on x.
 """
 lowpass(x,low;order=5) = filter_helper(x,low,0,Lowpass,order)
-lowpass(low,high;order=5) = x -> lowpass(x,low,high,order=order)
+lowpass(low;order=5) = x -> lowpass(x,low,order=order)
 
 """
     highpass([x],high,[order=5])
@@ -206,7 +206,7 @@ With two positional arguments this returns a function f(x)
 that applies the filter on x.
 """
 highpass(x,high;order=5) = filter_helper(x,0,high,Highpass,order)
-highpass(low,high;order=5) = x -> highpass(x,low,high,order=order)
+highpass(high;order=5) = x -> highpass(x,high,order=order)
 
 function buildfilt(samplerate,low,high,kind)
   if kind == Bandpass
