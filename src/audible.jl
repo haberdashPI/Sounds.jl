@@ -146,11 +146,11 @@ the following formula.
 y_n(t) = y_{n-1}(t) + g⋅y_{n-1}(t-1/freq)
 ``
 """
-function irn(n,λ,length;g=1,rate=samplerate(),rng=Base.GLOBAL_RNG)
-  irn_helper(noise(length,rate=rate,rng=rng),n,λ,g,rng)
+function irn(n,freq,length;g=1,rate=samplerate(),rng=Base.GLOBAL_RNG)
+  irn_helper(noise(length,rate=rate,rng=rng),n,1/freq,g,rng)
 end
 
-function irn_helper(source,n,1/λ,g,rng)
+function irn_helper(source,n,λ,g,rng)
   if n == 0
     source
   else
