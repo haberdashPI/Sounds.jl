@@ -118,20 +118,11 @@ end
 
 function Base.Array(x::Sound{R,T,C}) where {R,T,C}
   if C == 2
-    x.data
+    Array(x.data)
   else # C == 1
     vec(x.data)
   end
 end
-
-"""
-    Sound(file)
-
-Load a specified file as a `Sound` object.
-"""
-Sound(file::File) = Sound(load(file))
-Sound(file::String) = Sound(load(file))
-Sound(stream::IOStream) = Sound(load(stream))
 
 @require SampledSignals begin
   import SampledSignals: SampleBuf
@@ -142,6 +133,17 @@ Sound(stream::IOStream) = Sound(load(stream))
   """
   Sound(x::SampleBuf) = Sound(x.data,rate=samplerate(x)*Hz)
   SampleBuf(x::Sound) = SampleBuf(x.data,float(ustrip(samplerate(x))))
+  save(file::Union{AbstractString,IO},sound::Sound) = save(file,SampleBuf(sound))
+
+  """
+      Sound(file)
+
+  Load a specified file as a `Sound` object.
+  """
+  Sound(file::File) = Sound(load(file))
+
+  Sound(file::String) = Sound(load(file))
+  Sound(stream::IOStream) = Sound(load(stream))
 end
 
 @require AxisArray begin
@@ -154,8 +156,6 @@ end
   """
   Sound(x::AxisArray) = Sound(x.data,rate=samplerate(x))
 
-  save(file::Union{AbstractString,IO},sound::Sound) = save(file,SampleBuf(sound))
-
   function AxisArrays.AxisArray(x::Sound)
     time_axis = Axis{:time}(((1:nsamples(x))-1)/samplerate(x))
     ismono(x) ? AxisArray(x,time_axis) :
@@ -167,7 +167,7 @@ end
     Sound(fn,len,asseconds=true;rate=samplerate(),offset=0s)
 
 Creates monaural sound where `fn(t)` returns the amplitudes for a given `Range`
-of time points (in seconds as a `Float64`q). The function `fn(t)` should return
+of time points (in seconds as a `Float64`). The function `fn(t)` should return
 values ranging between -1 and 1 as an iterable object, and should be just
 as long as `t`.
 
