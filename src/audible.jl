@@ -60,7 +60,7 @@ function silence(length;rate=samplerate())
 end
 
 """
-    dc_offset(length;[rate_Hz=44100])
+    dc_offset(length;[rate=44100Hz])
 
 Creates a DC offset of unit value.
 
@@ -72,8 +72,8 @@ in combination with `envelope`, because it produces no audible sound.
 For example, it could be used to transition from a unmodulated to a amplitude
 modulated noise:
 
-    env = dc_offset(2s) |> fadeto(sin(5Hz,2s))
-    sound = noise() |> envelope(env)
+    env = dc_offset(2s) |> fadeto(tone(5Hz,2s))
+    sound = noise(1s) |> envelope(env)
 """
 function dc_offset(length;rate=samplerate())
   Sound(t -> fill(1.0,size(t)),length,false,rate=rate)
