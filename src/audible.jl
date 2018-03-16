@@ -66,6 +66,14 @@ Creates a DC offset of unit value.
 
 In other words, this just returns samples all with the value 1: `silence` is
 to `zeros` just as `dc_offset` is to `ones`.
+
+Though this technically constructs a sound it is normally only used
+in combination with `envelope`, because it produces no audible sound.
+For example, it could be used to transition from a unmodulated to a amplitude
+modulated noise:
+
+    env = dc_offset(2s) |> fadeto(sin(5Hz,2s))
+    sound = noise() |> envelope(env)
 """
 function dc_offset(length;rate=samplerate())
   Sound(t -> fill(1.0,size(t)),length,false,rate=rate)
