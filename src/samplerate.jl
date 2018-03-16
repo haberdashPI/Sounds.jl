@@ -1,5 +1,5 @@
 @require SampledSignals begin
-  import SampledSignals: samplerate
+  import SampledSignals: samplerate, nchannels
 end
 
 const default_sample_rate = fill(44100.0Hz)

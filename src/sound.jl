@@ -37,7 +37,9 @@ StereoSound{R,T,N} = Sound{R,T,2,N}
 Creates a sound object from an array.
 
 Assumes 1 is the loudest and -1 the softest. The array should be 1d for mono
-signals, or an array of size (N,2) for stereo sounds.
+signals, or an array of size (N,2) for stereo sounds. If `samplerate`
+is defined for this type of array, it will be used. Otherewise the
+default sampling rate is used.
 """
 function Sound(x::AbstractArray;rate=samplerate())
   R = floor(Int,ustrip(inHz(rate)))
