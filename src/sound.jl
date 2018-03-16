@@ -184,8 +184,8 @@ function Sound(fn::Function,len=Inf,asseconds=true;
                offset=0s,rate=samplerate())
   rate_Hz = inHz(rate)
 
-  n = ustrip(inframes(offset,rate_Hz))
-  m = ustrip(inframes(len,rate_Hz))
+  n = ustrip(nframes(offset,rate_Hz))
+  m = ustrip(nframes(len,rate_Hz))
   R = floor(Int,ustrip(rate_Hz))
   Sound(!asseconds ? fn(n+1:m) : fn(((n:m-1)-1)/R),rate=rate)
 end
@@ -439,8 +439,8 @@ const IntervalType = Union{ClosedInterval,ClosedIntervalEnd}
 
 function asrange(x::Sound{R},ixs::ClosedInterval) where R
   checktime(minimum(ixs))
-  from = max(1,inframes(minimum(ixs),R*Hz)+1)
-  to = inframes(maximum(ixs),R*Hz)
+  from = max(1,nframes(minimum(ixs),R*Hz)+1)
+  to = nframes(maximum(ixs),R*Hz)
   checkbounds(x.data,from,:)
   checkbounds(x.data,to,:)
   from:to
@@ -448,7 +448,7 @@ end
 
 function asrange(x::Sound{R},ixs::ClosedIntervalEnd) where R
   checktime(minimum(ixs))
-  from = max(1,inframes(minimum(ixs),R*Hz)+1)
+  from = max(1,nframes(minimum(ixs),R*Hz)+1)
   checkbounds(x.data,from,:)
   from:nframes(x)
 end
