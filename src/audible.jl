@@ -5,8 +5,6 @@ export samplerate, set_default_samplerate!, mix, envelope, silence, noise,
   highpass, lowpass, bandpass, bandstop, tone, ramp, harmonic_complex, amplify,
   rampon, rampoff, fadeto, irn, normpower, dc_offset
 
-
-
 """
     mix(x,...)
 
@@ -69,11 +67,11 @@ to `zeros` just as `dc_offset` is to `ones`.
 
 Though this technically constructs a sound it is normally only used
 in combination with `envelope`, because it produces no audible sound.
-For example, it could be used to transition from a unmodulated to a amplitude
+For example, it could be used to transition from a unmodulated to an amplitude
 modulated noise:
 
-    env = dc_offset(2s) |> fadeto(tone(5Hz,2s))
-    sound = noise(1s) |> envelope(env)
+    env = dc_offset(2s) |> fadeto(tone(8Hz,2s)) |> ramp(250ms)
+    sound = noise(duration(env)) |> envelope(env) |> normpower
 """
 function dc_offset(length;rate=samplerate())
   Sound(t -> fill(1.0,size(t)),length,false,rate=rate)
@@ -139,21 +137,20 @@ function harmonic_complex(f0,harmonics,amps,len=Inf;
 end
 
 """
-    irn(n,λ,[length=Inf];[g=1],[rate=samplerate()],
-                         [rng=Base.GLOBAL_RNG])
+    irn(n,freq,length;[g=1],[rate=samplerate()],[rng=Base.GLOBAL_RNG])
 
 Creates an iterated ripple ``y_n(t)`` for a noise ``y_0(t)`` according to
 the following formula.
 
 ``
-y_n(t) = y_{n-1}(t) + g⋅y_{n-1}(t-d)
+y_n(t) = y_{n-1}(t) + g⋅y_{n-1}(t-1/freq)
 ``
 """
-function irn(n,λ,length=Inf;g=1,rate=samplerate(),rng=Base.GLOBAL_RNG)
+function irn(n,λ,length;g=1,rate=samplerate(),rng=Base.GLOBAL_RNG)
   irn_helper(noise(length,rate=rate,rng=rng),n,λ,g,rng)
 end
 
-function irn_helper(source,n,λ,g,rng)
+function irn_helper(source,n,1/λ,g,rng)
   if n == 0
     source
   else
@@ -231,8 +228,13 @@ function filter_helper(sound,low,high,kind,order)
   Sound(DSP.filt(f,sound),rate=samplerate(sound))
 end
 
+DSP.filt(filter,x::Sound{R}) where R = Sound{R}(filt(filter,x.data))
+DSP.filt(filter,x::Sound{R},si) where R = Sound{R}(filt(filter,x.data),si)
+DSP.filtfilt(filter,x::Sound{R}) where R = Sound{R}(filtfilt(filter,x.data))
+DSP.filtfilt(b,a,x::Sound{R}) where R = Sound{R}(filtfilt(b,a,x.data))
+
 """
-    ramp([x],[length=5ms])
+    ramp([sound],[length=5ms])
 
 Applies a half cosine ramp to start and end of the sound.
 
@@ -318,7 +320,7 @@ rampoff(length=5ms) = x -> rampon(x,length=length)
     fadeto([a],[b],[transition=50ms])
 
 A smooth transition from a to b, overlapping the end of one
-with the start of the other by `overlap`.
+with the start of the other by `transition`.
 
 When passed a single sound, `a`, this returns a function `f(b)` that
 calls fadeto(a,b,transition).
