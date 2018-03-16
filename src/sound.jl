@@ -343,20 +343,17 @@ end
 Base.size(x::Sound) = size(x.data)
 Base.IndexStyle(::Type{Sound}) = IndexCartesian()
 
-@inline function getindex(x::Sound,ixs::Int...)
-  @boundscheck checkbounds(x.data,ixs...)
-  @inbounds return getindex(x.data,ixs...)
-end
+@inline @Base.propagate_inbounds getindex(x::Sound,ixs::Int...) =
+    getindex(x.data,ixs...)
 
-@inline function setindex!(x::Sound,v,ixs::Int...)
-  @boundscheck checkbounds(x.data,ixs...)
-  @inbounds return setindex!(x.data,v,ixs...)
-end
+@inline @Base.propagate_inbounds setindex!(x::Sound,v,ixs::Int...) =
+    setindex!(x.data,v,ixs...)
 
-# special casing of single sample of a stereo sound (we need to represent
-# this with time as dim 1 and channel as dim 2, while a normal array
+# special casing of single sample of a stereo sound across channels (we need to
+# represent this with time as dim 1 and channel as dim 2, while a normal array
 # would return a vector.)
-@inline function getindex(x::StereoSound{R,T},i::Int,js::Union{Colon,Range}) where {R,T}
+@inline function getindex(x::StereoSound{R,T},i::Int,
+                          js::Union{Colon,Range}) where {R,T}
   @boundscheck checkbounds(x.data,i,js)
   @inbounds return Sound(R,2,getindex(x.data,i:i,js))
 end
