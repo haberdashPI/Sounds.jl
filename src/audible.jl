@@ -80,12 +80,12 @@ function dc_offset(length;rate=samplerate())
 end
 
 """
-    noise(length=Inf;[rate=samplerate()],[rng=RandomDevice()])
+    noise(length;[rate=samplerate()],[rng=RandomDevice()])
 
 Creates a period of white noise of the given length (in seconds).
 
 """
-function noise(len=Inf;rate=samplerate(),rng=RandomDevice())
+function noise(len;rate=samplerate(),rng=RandomDevice())
   Sound(i -> 1.0-2.0rand(rng,length(i)),len,false,rate=rate)
 end
 
