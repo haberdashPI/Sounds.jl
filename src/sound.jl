@@ -1,17 +1,16 @@
-using FixedPointNumbers
 using FileIO
 using IntervalSets
-
-import FileIO: save
+using WAV
+import FileIO: save, load
 import DSP: resample
-import LibSndFile
-
 import Base: setindex!, getindex
 
-import Distributions: nsamples
+export duration, nchannels, nframes, save, leftright, left, right,
+  .., ends, Sound, ismono, isstereo, asstereo, asmono
 
-export duration, nchannels, nsamples, save, samplerate, leftright, left, right,
-    .., ends, Sound, ismono, isstereo, asstereo, asmono
+@require SampledSignals begin
+  import SampledSignals: nframes, nchannels
+end
 
 struct Sound{R,T,C,N} <: AbstractArray{T,N}
   data::AbstractArray{T,N}
@@ -135,18 +134,20 @@ end
   """
   Sound(x::SampleBuf) = Sound(x.data,rate=samplerate(x)*Hz)
   SampleBuf(x::Sound) = SampleBuf(x.data,float(ustrip(samplerate(x))))
-  save(file::Union{AbstractString,IO},sound::Sound) = save(file,SampleBuf(sound))
-
-  """
-      Sound(file)
-
-  Load a specified file as a `Sound` object.
-  """
-  Sound(file::File) = Sound(load(file))
-
-  Sound(file::String) = Sound(load(file))
-  Sound(stream::IOStream) = Sound(load(stream))
 end
+
+"""
+    Sound(file)
+
+Load a specified file as a `Sound` object.
+"""
+function Sound(file::Union{AbstractString,IO})
+  data,fs = wavread(file)
+  Sound(data,rate=fs*Hz)
+end
+
+save(file::Union{AbstractString,IO},sound::Sound) =
+  wavwrite(sound,file,Fs=ustrip(samplerate(sound)))
 
 @require AxisArray begin
   using AxisArrays
@@ -159,7 +160,7 @@ end
   Sound(x::AxisArray) = Sound(x.data,rate=samplerate(x))
 
   function AxisArrays.AxisArray(x::Sound)
-    time_axis = Axis{:time}(((1:nsamples(x))-1)/samplerate(x))
+    time_axis = Axis{:time}(((1:nframes(x))-1)/samplerate(x))
     ismono(x) ? AxisArray(x,time_axis) :
       AxisArray(x,time_axis,Axis{:channel}([:left,:right]))
   end
@@ -183,8 +184,8 @@ function Sound(fn::Function,len=Inf,asseconds=true;
                offset=0s,rate=samplerate())
   rate_Hz = inHz(rate)
 
-  n = ustrip(insamples(offset,rate_Hz))
-  m = ustrip(insamples(len,rate_Hz))
+  n = ustrip(inframes(offset,rate_Hz))
+  m = ustrip(inframes(len,rate_Hz))
   R = floor(Int,ustrip(rate_Hz))
   Sound(!asseconds ? fn(n+1:m) : fn(((n:m-1)-1)/R),rate=rate)
 end
@@ -197,7 +198,7 @@ Returns the duration of the sound. If passed an `Array`, takes a
 keyword argument `rate=samplerate(x)`.
 """
 function duration(x;rate=samplerate(x))
-  uconvert(s,nsamples(x) / inHz(rate))
+  uconvert(s,nframes(x) / inHz(rate))
 end
 
 rtype(::Type{<:Sound{R}}) where R = R
@@ -268,7 +269,7 @@ Base.:(/)(y::Sound,x::Number) = y * (1/unconvertrp(unit(1),x))
 
 Get the duration of the given sound in seconds.
 """
-duration(x::Sound{R}) where R = uconvert(s,nsamples(x) / (R*Hz))
+duration(x::Sound{R}) where R = uconvert(s,nframes(x) / (R*Hz))
 
 """
     nchannels(sound)
@@ -279,14 +280,14 @@ nchannels(x::Sound{R,T,C,N}) where {R,T,C,N} = C
 nchannels(::Type{<:Sound{R,T,C,N}}) where {R,T,C,N} = C
 
 """
-    nsamples(sound)
+    nframes(sound)
 
 Returns the number of samples in the sound.
 
 The number of samples is not always the same as the `length` of the sound.
-Stereo sounds have a length of 2 x nsamples(sound).
+Stereo sounds have a length of 2 x nframes(sound).
 """
-nsamples(x::Sound) = size(x.data,1)
+nframes(x::Sound) = size(x.data,1)
 
 """
     left(sound)
@@ -323,19 +324,19 @@ function Base.show(io::IO, x::Sound{R,T,N}) where {R,T,N}
 
   println(io, "$seconds $typ $channel sound")
   print(io, "Sampled at $(R*Hz)")
-  nsamples(x) > 0 && showchannels(io, x)
+  nframes(x) > 0 && showchannels(io, x)
 end
 Base.show(io::IO, ::MIME"text/plain", x::Sound) = show(io,x)
 
 const ticks = ['_','▁','▂','▃','▄','▅','▆','▇']
 function showchannels(io::IO, x::Sound, widthchars=80)
   # number of samples per block
-  blockwidth = round(Int, nsamples(x)/widthchars, RoundUp)
-  nblocks = round(Int, nsamples(x)/blockwidth, RoundUp)
+  blockwidth = round(Int, nframes(x)/widthchars, RoundUp)
+  nblocks = round(Int, nframes(x)/blockwidth, RoundUp)
   blocks = Array{Char}(nblocks, nchannels(x))
   for blk in 1:nblocks
     i = (blk-1)*blockwidth + 1
-    n = min(blockwidth, nsamples(x)-i+1)
+    n = min(blockwidth, nframes(x)-i+1)
     peaks = sqrt.(mean(float(x.data[(1:n)+i-1,:]).^2,1))
     # clamp to -60dB, 0dB
     peaks = clamp.(20log10.(peaks), -60.0, 0.0)
@@ -438,8 +439,8 @@ const IntervalType = Union{ClosedInterval,ClosedIntervalEnd}
 
 function asrange(x::Sound{R},ixs::ClosedInterval) where R
   checktime(minimum(ixs))
-  from = max(1,insamples(minimum(ixs),R*Hz)+1)
-  to = insamples(maximum(ixs),R*Hz)
+  from = max(1,inframes(minimum(ixs),R*Hz)+1)
+  to = inframes(maximum(ixs),R*Hz)
   checkbounds(x.data,from,:)
   checkbounds(x.data,to,:)
   from:to
@@ -447,9 +448,9 @@ end
 
 function asrange(x::Sound{R},ixs::ClosedIntervalEnd) where R
   checktime(minimum(ixs))
-  from = max(1,insamples(minimum(ixs),R*Hz)+1)
+  from = max(1,inframes(minimum(ixs),R*Hz)+1)
   checkbounds(x.data,from,:)
-  from:nsamples(x)
+  from:nframes(x)
 end
 
 getindex(x::MonoSound,interval::IntervalType) = getindex(x,asrange(x,interval))
@@ -482,10 +483,10 @@ function leftright(x,y)
           "Sounds had unmatched samplerates $(samplerate.((x,y))).")
   @assert size(x,2) == size(y,2) == 1 "Expected two monaural sounds."
 
-  len = maximum(nsamples.((x,y)))
+  len = maximum(nframes.((x,y)))
   z = similar(x,(len,2))
   z .= zero(x[1])
-  z[1:nsamples(x),1] = x
-  z[1:nsamples(y),2] = y
+  z[1:nframes(x),1] = x
+  z[1:nframes(y),2] = y
   z
 end
