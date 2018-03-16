@@ -300,9 +300,8 @@ function rampoff(x::AbstractArray,length=5ms)
 
   rampstart = (after - len_s)
 	r = Sound(after*samples,false,rate=samplerate(x)) do t
-    ifelse.(t .< rampstart,1,-0.5.*cos.(π.*(t.-rampstart)./len_s.+π).+0.5)
+    ifelse.(t .< rampstart,1.0,-0.5.*cos.(π.*(t.-rampstart)./len_s.+π).+0.5)
 	end
-  @show typeof(r)
 	envelope(x,r)
 end
 rampoff(length=5ms) = x -> rampon(x,length=length)
