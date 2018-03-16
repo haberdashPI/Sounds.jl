@@ -3,7 +3,7 @@ using Unitful
 
 export samplerate, set_default_samplerate!, mix, envelope, silence, noise,
   highpass, lowpass, bandpass, bandstop, tone, ramp, harmonic_complex, amplify,
-  rampon, rampoff, fadeto, irn, normpower
+  rampon, rampoff, fadeto, irn, normpower, dc_offset
 
 
 
