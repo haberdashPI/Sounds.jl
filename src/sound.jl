@@ -10,9 +10,8 @@ import Base: setindex!, getindex
 
 import Distributions: nsamples
 
-export sound, playable, duration, nchannels, nsamples, save, samplerate, length,
-  samples, leftright, similar, left, right, resample,
-  audiofn, .., ends, data, Sound, ismono, isstereo
+export duration, nchannels, nsamples, save, samplerate, leftright, left, right,
+    .., ends, Sound, ismono, isstereo, asstereo, asmono
 
 struct Sound{R,T,C,N} <: AbstractArray{T,N}
   data::AbstractArray{T,N}
