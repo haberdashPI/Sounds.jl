@@ -21,7 +21,8 @@ end
   export play
 
   const portaudio = PortAudio.PortAudioStream()
-  play(x::Sound) = write(portaudio,SampledSignals.SampleBuf(x))
+  write(io,x::Sound) = write(io,SampledSignals.SampleBuf(x))
+  play(x::Sound) = write(portaudio,x)
   atexit() do
     sleep(0.1)
     close(portaudio)
