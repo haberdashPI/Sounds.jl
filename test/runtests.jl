@@ -16,7 +16,7 @@ Sampled at 44100 Hz
 
   @test x[:left][:right] == x[:left][:left]
   @test nsamples(x[1,:]) == 1
-  @test nsamples(x[:left][1,:])
+  @test nsamples(x[:left][1,:]) == 1
   @test ismono(x[0s .. 0.5s,:left])
   @test isstereo(x[0s .. 0.5s])
   @test x[:left][0s .. 0.5s] == x[0s .. 0.5s,:left]
