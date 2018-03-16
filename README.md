@@ -1,9 +1,11 @@
 # Sounds
 
-[![Project Status: WIP – Initial development is in progress, but there has not yet been a stable, usable release suitable for the public.](http://www.repostatus.org/badges/latest/wip.svg)](http://www.repostatus.org/#wip) [![](https://img.shields.io/badge/docs-latest-blue.svg)](https://haberdashPI.github.io/Sounds.jl/latest)
+[![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](http://www.repostatus.org/badges/latest/active.svg)](http://www.repostatus.org/#active)
+[![](https://img.shields.io/badge/docs-stable-blue.svg)](https://haberdashPI.github.io/Sounds.jl/stable)
+[![](https://img.shields.io/badge/docs-latest-blue.svg)](https://haberdashPI.github.io/Sounds.jl/latest)
 <!-- [![Build status](https://ci.appveyor.com/api/projects/status/uvxq5mqlq0p2ap02/branch/master?svg=true)](https://ci.appveyor.com/project/haberdashPI/weber-jl/branch/master) -->
-<!-- [![TravisCI Status](https://travis-ci.org/haberdashPI/Weber.jl.svg?branch=master)](https://travis-ci.org/haberdashPI/Weber.jl) -->
-<!-- [![](https://img.shields.io/badge/docs-stable-blue.svg)](https://haberdashPI.github.io/Weber.jl/stable) -->
+<!-- [![TravisCI Status](https://travis-ci.org/haberdashPI/Sounds.jl.svg?branch=master)](https://travis-ci.org/haberdashPI/Sounds.jl) -->
+<!-- [![](https://img.shields.io/badge/docs-stable-blue.svg)](https://haberdashPI.github.io/Sounds.jl/stable) -->
 
 Sounds is a package that aims to provide a clean interface for generating and manipulating sounds.
 
@@ -13,20 +15,22 @@ using Sounds
 # create a pure tone 20 dB below a power 1 signal
 sound1 = tone(1kHz,5s) |> normpower |> amplify(-20dB)
 
-# load a sound from a file
-sound2 = Sound("mysound.wav")
-
 # create a sawtooth wave 
-sound3 = Sound(t -> 1000t .% 1,2s) |> normpower |> amplify(-20dB)
+sound2 = Sound(t -> 1000t .% 1,2s) |> normpower |> amplify(-20dB)
 
 # create a 5Hz amplitude modulated noise
-sound4 = noise(2s) |> envelope(tone(5Hz,2s)) |> normpower |> amplify(-20dB)
+sound3 = noise(2s) |> envelope(tone(5Hz,2s)) |> normpower |> amplify(-20dB)
+
+# load a sound from a file match the power to that of sound1
+using LibSndFile
+sound4 = Sound("mysound.wav") |> normpower |> amplify(-20dB)
 ```
 
 Sounds work much like arrays, and in addition to the normal ways of indexing an
-array, you can also access parts of a sound using
-[Untiful.jl](https://github.com/ajkeller34/Unitful.jl) values and
-[IntervalSets.jl](https://github.com/JuliaMath/IntervalSets.jl). For example:
+array, you can access the channels by name (`:left` and `:right`) and you can
+access time slices using [Untiful.jl](https://github.com/ajkeller34/Unitful.jl)
+values and [IntervalSets.jl](https://github.com/JuliaMath/IntervalSets.jl). For
+example:
 
 ```julia
 sound1[1s .. 2s,:left]
@@ -36,55 +40,71 @@ sound1[:right]
 leftright(sound1[0s .. 1s,:left],sound2[1s .. 2s,:right])
 ```
 
-When working with multiple sounds, methods in this package "just work". If the
-sounds have a different number of channels, a different sampling rate or different bit
-rate, the sounds are first promoted to the highest fidelity representation, and then
-the given method is applied over the promoted representation.
+Because sounds have well defined promotion semantics, when working with multiple
+sounds, things "just work". Specifically, if the sounds have a different number
+of channels, a different sampling rate or different bit rate, the sounds are
+first promoted to the highest fidelity representation, and then the given method
+is applied over the promoted representation.
 
 See the [documentation](https://haberdashPI.github.io/Sounds.jl/latest) for a complete
 description of available methods.
 
-Once you've created a sound you can use [PortAudio.jl](https://github.com/JuliaAudio/PortAudio.jl) or **TODO_CHANGE**[TimedPortAudio.jl](https://github.com/haberdashPI/TimedPortAudio.jl) to play the sounds, or you can just save the sound.
+Once you've created a sound you can use
+[LibSndFile.jl](https://github.com/JuliaAudio/LibSndFile.jl) to save it, or 
+[PortAudio.jl](https://github.com/JuliaAudio/PortAudio.jl) to play it.
 
 ```julia
 sound1 = tone(1kHz,5s) |> normpower |> amplify(-20dB)
 
-using FileIO
+using LibSndFile
 save("puretone.wav",sound1)
 
-# **EITHER***
 using PortAudio
 play(sound1)
-
-## **OR**
-using TimedSound
-play(sound1)
-
 ```
 
 # Alternative Solutions
 
 There are two other ways you might represent sounds in Julia,
 [AxisArrays.jl](https://github.com/JuliaArrays/AxisArrays.jl) and
-[SampledSignals.jl](https://github.com/JuliaAudio/SampledSignals.jl). A `Sound`
-differs from these solutions in a number of ways.
+[SampledSignals.jl](https://github.com/JuliaAudio/SampledSignals.jl). A lot of
+the ideas for this package came from these two packages (thanks!). Here are some
+of the ways that a `Sound` differs from these other solutions.
 
-1. As of the last update to `Sounds`, the `SampledSignals` package uses some out
-   of date packages and aims to support some older versions of Julia. It also
-   has a more ambitious scope, and seeks to represent many kinds of signals, not
-   just sounds. `SampledSignals` does not include the various sound manipulation
-   routines available in `Sounds`.
+For `SapmledSignals` vs. `Sounds`:
+1. `SampledSignals` does not include the various sound manipulation routines
+   available in `Sounds`. This was the key motivation for the present package.
+   The differences in the design of the `Sound` object were motivated by
+   making these manipulation routines easy to use.
+2. There are a number of automatic promotions that `Sounds` undergoe that
+   objects from `SampledSignals` do not undergoe. `SampledSignals` does modify
+   the format of sounds automatically in some cases, but this is handled through
+   a seperate mechanism as streams are written to various sinks.
+3. As of the last update to `Sounds`, `SampledSignals` package uses some out
+   of date packages and has deprecation warnings for Julia v0.6. `Sounds`
+   uses some a more recent package for representing units and intervals of time.
+4. `SampledSignals` has a more ambitious scope, and seeks to represent many
+   kinds of signals in multiple domains, not just sounds in their time/amplitude
+   representation. 
 
-2. Once you create an `AxisArray`, the interface is very similar to a `Sound`
-   but, as a more generic interface, it requires you to explicitly specify the
-   axes you want to use when constructing a sound. There is no automatic
-   promotion of the sample rate or channel when using `AxisArray`'s.
+For `AxisArray` vs. `Sounds`:
+1. An `AxisArray` must have its dimensions explicitly specified 
+   during construction. `Sounds` knows what the axes for a sound should be.
+2. There is no automatic promotion of the sample rate or channel number when using
+   an `AxisArray`.
+3. Currently, the methods defined on an `AxisArray` are not defined for a `Sound`
+   (e.g. axes, axisnames, etc...).
+4. Unlike indexing into a `Sound`, there is no `ends` defined for an `AxisArray`;
+   you must explicitly calculate the duration of the array when indexing by
+   time.
 
 If you want to use either of these other packages with `Sounds`, many of the
-sound manipulation routines provided are written generically enough to handle any type
-(though some routines will convert to the result to a `Sound`). If you construct
-a sound using this package you can easily convert it to one of these other
-types, or vice versa, by calling an appropriate constructor.
-(e.g. `SampleBuf(tone(1kHz,1s))` or `Sound(myaxis_array)`). Bear in mind that
-`SampledSignals` may export some symbols that conflict with `Sounds` (e.g. last
-time I checked it uses an older approach for representing units).
+sound manipulation routines provided here are written generically enough to
+handle any type (though some routines will promote the output to a `Sound`). If
+you construct a sound using this package you can easily convert it to one of
+these other types, or vice versa, by calling an appropriate constructor.
+(e.g. `SampleBuf(tone(1kHz,1s))`, `Sound(samplebuf)`, `AxisArray(sound)`). Bear
+in mind that `SampledSignals` exports some symbols that conflict with `Sounds`
+(e.g. last time I checked it uses an older approach for representing units and
+exports conflicting symbosl for these units), so it is probably best to `import`
+Sounds or SampledSignals and call `using` on the other.

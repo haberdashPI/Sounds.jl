@@ -1,10 +1,10 @@
-using Documenter, Sounds
+using Documenter, Sounds, Unitful
 makedocs(
   modules = [Sounds],
   format = :html,
   sitename = "Sounds.jl",
   html_prettyurls = true,
-  pages = Any[
+  pages = [
     "Manual" => "manual.md",
     "Reference" => "reference.md"
   ]

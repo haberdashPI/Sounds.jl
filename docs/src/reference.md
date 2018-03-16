@@ -7,18 +7,22 @@ noise
 silence
 harmonic_complex
 irn
-audible
 ```
 
 # Interface
 
 ```@docs
 samplerate
-nchannels(::TimedSound.Sound)
-nsamples(::TimedSound.Sound)
+set_default_samplerate!
+nchannels(::Sounds.Sound)
+nsamples(::Sounds.Sound)
 duration
 left
 right
+ismono
+isstereo
+asmono
+asstereo
 ```
 
 # Sound Manipulation
@@ -33,11 +37,11 @@ rampon
 rampoff
 fadeto
 amplify
-normalize
+normpower
 mix
-mult
 envelope
+dc_offset
 leftright
-DSP.Filters.resample(::TimedSound.Sound,::Any)
+DSP.Filters.resample(::Sounds.Sound,::Quantity)
 ```
 
