@@ -52,10 +52,11 @@ function Sound(x::Sound;rate=samplerate(x))
   end
 end
 
-Base.convert(to::Type{<:Sound},x::Array) = convert(to,Sound(x,rate=R*Hz))
+Base.convert(to::Type{T},x::Array) where {T <: Sound} =
+  convert(to,Sound(x,rate=rtype(T)*Hz))
 
-function Base.convert(to::Type{Sound{R1,T1,C1}},
-                      x::Sound{R2,T2,C2}) where {R1,R2,T1,T2,C1,C2}
+function Base.convert(to::Type{Sound{R1,T1,C1,N1}},
+                      x::Sound{R2,T2,C2,N2}) where {R1,R2,T1,T2,C1,C2,N1,N2}
   if R1 != R2
     convert(to,resample(x,R1*Hz))
   elseif C1 != C2
@@ -66,6 +67,14 @@ function Base.convert(to::Type{Sound{R1,T1,C1}},
     end
   elseif T1 != T2
     Sound(R1,C1,convert(Array{T1},x.data))
+  elseif N1 != N2
+    if N1 == 1
+      Sound(R1,C1,vec(x.data))
+    elseif N1 == 2
+      Sound(R1,C1,reshape(x.data,:,1))
+    else
+      error("Unexpected number array dimensions of $N1.")
+    end
   else
     x
   end
@@ -226,7 +235,7 @@ isstereo(x::Sound) = !ismono(x)
 
 function Base.promote_rule(::Type{A},::Type{B}) where {A<:Sound,B<:Sound}
   R = max(rtype(A),rtype(B))
-  T = promote_rule(@show(eltype(A)),@show(eltype(B)))
+  T = promote_type(eltype(A),eltype(B))
   C = max(nchannels(A),nchannels(B))
   N = max(ndims(A),ndims(B))
 
