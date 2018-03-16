@@ -189,7 +189,8 @@ function duration(x;rate=samplerate(x))
   uconvert(s,nsamples(x) / inHz(rate))
 end
 
-rtype{R}(x::Sound{R}) = R
+rtype(::Type{<:Sound{R}}) where R = R
+rtype(x::Sound{R}) where {R} = R
 Base.length(x::Sound) = length(x.data)
 
 """
@@ -223,25 +224,17 @@ True if the sound is stereo.
 """
 isstereo(x::Sound) = !ismono(x)
 
-"""
-    xs = promote_sounds(xs)
+function Base.promote_rule(::Type{A},::Type{B}) where {A<:Sound,B<:Sound}
+  R = max(rtype(A),rtype(B))
+  T = promote_rule(@show(eltype(A)),@show(eltype(B)))
+  C = max(nchannels(A),nchannels(B))
+  N = max(ndims(A),ndims(B))
 
-Given a series of sounds, potentially with differing sample rates, bit rates
-and channels, promote all of them to the highest fidelity.
-"""
-function promote_sounds(xs::Sound...)
-  R = maximum(rtype.(xs))
-  T = promote_type(map(eltype,xs)...)
-  C = maximum(nchannels.(xs))
-
-  map(xs) do x
-    convert(Sound{R,T,C},x)
-  end
+  Sound{R,T,C,N}
 end
-promote_sounds(xs::Sound{R,T,C,N}...) where {R,T,C,N} = xs
 
 function Base.vcat(xs::Sound...)
-  ys = promote_sounds(xs...)
+  ys = promote(xs...)
   R = rtype(ys[1])
   C = nchannels(ys[1])
   Sound(R,C,vcat(map(x -> x.data,ys)...))
@@ -272,6 +265,7 @@ duration(x::Sound{R}) where R = uconvert(s,nsamples(x) / (R*Hz))
 Return the number of channels (1 for mono, 2 for stereo) in this sound.
 """
 nchannels(x::Sound{R,T,C,N}) where {R,T,C,N} = C
+nchannels(::Type{<:Sound{R,T,C,N}}) where {R,T,C,N} = C
 
 """
     nsamples(sound)
