@@ -91,24 +91,6 @@ mynoise = amplify(mynoise,-20dB)
 scene = mix(mysound,mynoise)
 ```
 
-### Explicit Filter Design
-If you want to have more control over the kind of filters you apply to
-sounds, you can using the [DSP](https://juliadsp.github.io/DSP.jl/latest/contents.html)
-package. Both `filt` and `filtfilt` have been defined over sounds.
-
-```julia
-using DSP
-x = noise(1s)
-responsetype = Bandpass(10, 40; fs=ustrip(samplerate(x)))
-designmethod = Butterworth(4)
-filtered_x = filt(digitalfilter(responsetype, designmethod), x)
-```
-
-The resulting value, `filtered_x`, will be a sound (not a plain array). Note
-that we must use the unitful method `ustrip` because `fs` must be a `Float64`
-not a `Quantity{Float64}` (for more information on unitful quantities, see
-[Unitful.jl](https://github.com/ajkeller34/Unitful.jl).
-
 ## Sounds are arrays
 
 Because sounds are just an `AbstractArray` of real numbers they can be
@@ -209,14 +191,11 @@ Sampled at 44100 Hz
 
 # Using Sounds
 
-Once you've created a sound you can use
-[LibSndFile.jl](https://github.com/JuliaAudio/LibSndFile.jl) to save it, or 
+Once you've created a sound you can use save it, or 
 [PortAudio.jl](https://github.com/JuliaAudio/PortAudio.jl) to play it.
 
 ```julia
 sound1 = tone(1kHz,5s) |> normpower |> amplify(-20dB)
-
-using LibSndFile
 save("puretone.wav",sound1)
 
 using PortAudio

@@ -228,11 +228,6 @@ function filter_helper(sound,low,high,kind,order)
   Sound(DSP.filt(f,sound),rate=samplerate(sound))
 end
 
-DSP.filt(filter,x::Sound{R}) where R = Sound{R}(filt(filter,x.data))
-DSP.filt(filter,x::Sound{R},si) where R = Sound{R}(filt(filter,x.data),si)
-DSP.filtfilt(filter,x::Sound{R}) where R = Sound{R}(filtfilt(filter,x.data))
-DSP.filtfilt(b,a,x::Sound{R}) where R = Sound{R}(filtfilt(b,a,x.data))
-
 """
     ramp([sound],[length=5ms])
 
