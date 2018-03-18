@@ -34,14 +34,14 @@ envelope(x) = y -> envelope(x,y)
 
 function soundop(op,x_in...)
   xs = promote(x_in...)
-  len = maximum(nsamples.(xs))
+  len = maximum(nframes.(xs))
 
-  sorted = sortperm(collect(nsamples.(xs)),rev=true)
+  sorted = sortperm(collect(nframes.(xs)),rev=true)
   y = similar(xs[1],(len,nchannels(xs[1])))
   y .= xs[sorted[1]]
 
   for i in sorted[2:end]
-    y[1:nsamples(xs[i]),:] .= op.(y[1:nsamples(xs[i]),:],xs[i][:,:])
+    y[1:nframes(xs[i]),:] .= op.(y[1:nframes(xs[i]),:],xs[i][:,:])
   end
 
   y
@@ -94,8 +94,7 @@ Creates a pure tone of the given frequency and length (in seconds).
 
 """
 function tone(freq,len=Inf;rate=samplerate(),phase=0.0)
-  freq_Hz = ustrip(inHz(freq))
-  Sound(t -> sin.(2π*t * freq_Hz + phase),len,rate=rate)
+  Sound(t -> sin.(2π*t * ustrip(inHz(freq)) + phase),len,rate=rate)
 end
 
 function complex_cycle(f0,harmonics,amps,rate,phases)
@@ -105,7 +104,7 @@ function complex_cycle(f0,harmonics,amps,rate,phases)
   # generate single cycle of complex
   cycle = silence((1/f0),rate=rate)
 
-	highest_freq = tone(f0,2n*length(cycle)*samples;rate=rate)
+	highest_freq = tone(f0,2n*length(cycle)*frames;rate=rate)
 
 	for (amp,harm,phase) in zip(amps,harmonics,phases)
 		phase_offset = round(Int,n*phase/2π*rate/f0)
@@ -146,8 +145,8 @@ the following formula.
 y_n(t) = y_{n-1}(t) + g⋅y_{n-1}(t-1/freq)
 ``
 """
-function irn(n,freq,length;g=1,rate=samplerate(),rng=Base.GLOBAL_RNG)
-  irn_helper(noise(length,rate=rate,rng=rng),n,1/freq,g,rng)
+function irn(n,λ,length;g=1,rate=samplerate(),rng=Base.GLOBAL_RNG)
+  irn_helper(noise(length,rate=rate,rng=rng),n,λ,g,rng)
 end
 
 function irn_helper(source,n,λ,g,rng)
@@ -239,14 +238,14 @@ When there is no sound argument, this returns a function f(x) that
 ramp(x,length)
 """
 function ramp(x::AbstractArray,length=5ms)
-  ramp_n = insamples(length,samplerate(x))
-	if nsamples(x) < 2ramp_n
+  ramp_n = inframes(length,samplerate(x))
+	if nframes(x) < 2ramp_n
     error("Cannot apply two $(rounded_time(length,samplerate(x))) ramps to ",
           "$(rounded_time(duration(x),samplerate(x))) sound.")
   end
 
-  n = nsamples(x)
-	r = Sound(n*samples,false,rate=samplerate(x)) do t
+  n = nframes(x)
+	r = Sound(n*frames,false,rate=samplerate(x)) do t
     ifelse.(t .< ramp_n,
       -0.5.*cos.(π.*t./ramp_n).+0.5,
     ifelse.(t .< n .- ramp_n,
@@ -266,13 +265,13 @@ When passed no sound argument, this returns a function f(x)
 which calls rampon(x,length)
 """
 function rampon(x::AbstractArray,length=5ms)
-  ramp_n = insamples(length,samplerate(x))
-	if nsamples(x) < ramp_n
+  ramp_n = inframes(length,samplerate(x))
+	if nframes(x) < ramp_n
     error("Cannot apply a $(rounded_time(length,samplerate(x))) ramp to ",
           "$(rounded_time(duration(x),samplerate(x))) sound.")
   end
 
-	r = Sound(ramp_n*samples,false,rate=samplerate(x)) do t
+	r = Sound(ramp_n*frames,false,rate=samplerate(x)) do t
     -0.5.*cos.(π.*t./ramp_n).+0.5
 	end
 	envelope(x,r)
@@ -288,12 +287,12 @@ When passed no sound argument, this returns a function f(x)
 which calls rampoff(x,length)
 """
 function rampoff(x::AbstractArray,length=5ms)
-  len_s = insamples(length,samplerate(x))
-  after = nsamples(x)
+  len_s = inframes(length,samplerate(x))
+  after = nframes(x)
 
   R = ustrip(samplerate(x))
-  if !(0 < after <= nsamples(x))
-    if len_s > nsamples(x)
+  if !(0 < after <= nframes(x))
+    if len_s > nframes(x)
       error("Cannot apply $(rounded_time(len_s/R,R)) ramp to",
             " $(rounded_time(duration(x),R)) of audio.")
     else
@@ -304,7 +303,7 @@ function rampoff(x::AbstractArray,length=5ms)
   end
 
   rampstart = (after - len_s)
-	r = Sound(after*samples,false,rate=samplerate(x)) do t
+	r = Sound(after*frames,false,rate=samplerate(x)) do t
     ifelse.(t .< rampstart,1.0,-0.5.*cos.(π.*(t.-rampstart)./len_s.+π).+0.5)
 	end
 	envelope(x,r)

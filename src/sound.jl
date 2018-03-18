@@ -312,14 +312,7 @@ rounded_time(x,rate::Int) = round(ustrip(inseconds(x,rate)),floor(Int,log(10,rat
 
 function Base.show(io::IO, x::Sound{R,T,N}) where {R,T,N}
   seconds = rounded_time(duration(x),R)
-  typ = if eltype(x) == Q0f15
-    "16 bit PCM"
-  elseif eltype(x) <: AbstractFloat
-    "$(sizeof(eltype(x))*8) bit floating-point"
-  else
-    eltype(x)
-  end
-
+  typ = eltype(x)
   channel = size(x.data,2) == 1 ? "mono" : "stereo"
 
   println(io, "$seconds $typ $channel sound")
@@ -425,7 +418,7 @@ end
 Base.minimum(x::ClosedIntervalEnd) = x.from
 
 IntervalSets.:(..)(x::Time,::EndSecs) = ClosedIntervalEnd(x)
-IntervalSets.:(..)(x::SampleQuant,::EndSecs) = ClosedIntervalEnd(x)
+IntervalSets.:(..)(x::FrameQuant,::EndSecs) = ClosedIntervalEnd(x)
 IntervalSets.:(..)(x,::EndSecs) = error("Unexpected quantity $x in interval.")
 
 function checktime(time)
@@ -439,8 +432,8 @@ const IntervalType = Union{ClosedInterval,ClosedIntervalEnd}
 
 function asrange(x::Sound{R},ixs::ClosedInterval) where R
   checktime(minimum(ixs))
-  from = max(1,nframes(minimum(ixs),R*Hz)+1)
-  to = nframes(maximum(ixs),R*Hz)
+  from = max(1,inframes(minimum(ixs),R*Hz)+1)
+  to = inframes(maximum(ixs),R*Hz)
   checkbounds(x.data,from,:)
   checkbounds(x.data,to,:)
   from:to
@@ -448,7 +441,7 @@ end
 
 function asrange(x::Sound{R},ixs::ClosedIntervalEnd) where R
   checktime(minimum(ixs))
-  from = max(1,nframes(minimum(ixs),R*Hz)+1)
+  from = max(1,inframes(minimum(ixs),R*Hz)+1)
   checkbounds(x.data,from,:)
   from:nframes(x)
 end

@@ -4,7 +4,7 @@ using Base.Test
 x = leftright(tone(1kHz,1s) |> ramp,tone(1kHz,1s) |> ramp)
 rng() = MersenneTwister(1983)
 
-show_str = "1.0 s 64 bit floating-point stereo sound
+show_str = "1.0 s Float64 stereo sound
 Sampled at 44100 Hz
 ▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆
 ▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆"
@@ -15,8 +15,8 @@ Sampled at 44100 Hz
   @test isapprox(duration(x[0.5s .. ends,:]),0.5s; atol = 2/samplerate(x))
 
   @test x[:left][:right] == x[:left][:left]
-  @test nsamples(x[1,:]) == 1
-  @test nsamples(x[:left][1,:]) == 1
+  @test nframes(x[1,:]) == 1
+  @test nframes(x[:left][1,:]) == 1
   @test ismono(x[0s .. 0.5s,:left])
   @test isstereo(x[0s .. 0.5s])
   @test x[:left][0s .. 0.5s] == x[0s .. 0.5s,:left]
@@ -25,7 +25,7 @@ Sampled at 44100 Hz
   @test x[:,:left] == x[:,:right]
   @test x[0.5s .. 0.75s] == x[0.5s .. 0.75s,:]
   @test x[0.5s .. ends] == x[0.5s .. ends,:]
-  mylen = nsamples(x[0.1s .. 0.6s])
+  mylen = nframes(x[0.1s .. 0.6s])
   newx = copy(x)
   @test (newx[0.1s .. 0.6s] = x[50:(50+mylen-1),:]) == x[50:(50+mylen-1),:]
   @test (newx[0.1s .. 0.6s,:] = x[50:(50+mylen-1),:]) == x[50:(50+mylen-1),:]
@@ -35,18 +35,18 @@ Sampled at 44100 Hz
   @test (newx[0.1s .. 0.6s,:] = x[0.2s .. 0.700005s,:]) ==
     x[0.2s .. 0.700005s,:]
 
-  @test x[0s .. 22050samples,:] == x[0s .. 0.5s,:]
-  @test x[22050samples .. 44100samples,:] == x[0.5s .. 1s,:]
-  @test x[22050samples .. 1s,:] == x[0.5s .. 1s,:]
-  @test x[22050samples .. ends,:] == x[0.5s .. ends,:]
-  @test x[0.5s .. 1s,:] == (x[0s .. 22050samples,:] = x[0.5s .. 1s,:])
-  @test x[0.5s .. ends,:] == (x[22050samples .. ends,:] = x[0.5s .. ends,:])
+  @test x[0s .. 22050frames,:] == x[0s .. 0.5s,:]
+  @test x[22050frames .. 44100frames,:] == x[0.5s .. 1s,:]
+  @test x[22050frames .. 1s,:] == x[0.5s .. 1s,:]
+  @test x[22050frames .. ends,:] == x[0.5s .. ends,:]
+  @test x[0.5s .. 1s,:] == (x[0s .. 22050frames,:] = x[0.5s .. 1s,:])
+  @test x[0.5s .. ends,:] == (x[22050frames .. ends,:] = x[0.5s .. ends,:])
 
-  @test x[22050samples .. 44100samples] == x[0.5s .. 1s]
-  @test x[22050samples .. 1s] == x[0.5s .. 1s]
-  @test x[22050samples .. ends] == x[0.5s .. ends]
-  @test x[0.5s .. 1s] == (x[0s .. 22050samples] = x[0.5s .. 1s])
-  @test x[0.5s .. ends] == (x[22050samples .. ends] = x[0.5s .. ends])
+  @test x[22050frames .. 44100frames] == x[0.5s .. 1s]
+  @test x[22050frames .. 1s] == x[0.5s .. 1s]
+  @test x[22050frames .. ends] == x[0.5s .. ends]
+  @test x[0.5s .. 1s] == (x[0s .. 22050frames] = x[0.5s .. 1s])
+  @test x[0.5s .. ends] == (x[22050frames .. ends] = x[0.5s .. ends])
 
   @test_throws BoundsError x[0.5s .. 2s,:]
   @test_throws BoundsError x[-0.5s .. 0.5s,:]
@@ -69,7 +69,7 @@ Sampled at 44100 Hz
   @test_throws DimensionMismatch x[0.5s .. 0.6s] = 1:10
   @test_throws DimensionMismatch x[0.5s .. ends] = 1:10
 
-  @test nsamples(x[0s .. 0.5s,:]) + nsamples(x[0.5s .. ends,:]) == nsamples(x)
+  @test nframes(x[0s .. 0.5s,:]) + nframes(x[0.5s .. ends,:]) == nframes(x)
   strbuff = IOBuffer()
   show(strbuff,x)
   @test show_str == String(strbuff)
@@ -84,15 +84,15 @@ end
     44100Hz
   @test samplerate([Sound(zeros(10)); Sound(zeros(10);rate=22050Hz)]) ==
     44100Hz
-  @test nchannels([silence(200samples);x]) == 2
-  @test eltype(Sound(t -> zeros(t),200samples)) == Float64
-  @test eltype([Sound(zeros(Float32,200)); silence(200samples)]) ==
+  @test nchannels([silence(200frames);x]) == 2
+  @test eltype(Sound(t -> zeros(length(t)),200frames)) == Float64
+  @test eltype([Sound(zeros(Float32,200)); silence(200frames)]) ==
     Float64
-  @test nsamples(tone(1kHz,1s)) ==
+  @test nframes(tone(1kHz,1s)) ==
     ustrip(samplerate(tone(1kHz,1s)))
-  @test nsamples(leftright(tone(1kHz,1s),tone(1kHz,1s))) ==
+  @test nframes(leftright(tone(1kHz,1s),tone(1kHz,1s))) ==
     ustrip(samplerate(tone(1kHz,1s)))
-  @test nsamples(ramp(tone(1kHz,1s))) == nsamples(tone(1kHz,1s))
+  @test nframes(ramp(tone(1kHz,1s))) == nframes(tone(1kHz,1s))
   @test [x[0s .. 0.5s]; x[0.5s .. ends]] == x
   @test [x[0s .. 0.5s]; x[0.5s .. ends,:left]] == x
   @test same(Sound("sounds/tone.wav"),x)

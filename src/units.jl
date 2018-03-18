@@ -1,25 +1,25 @@
 using Unitful
 import Unitful: ms, s, kHz, Hz, dB
-export dB, ms, s, kHz, Hz, samples, uconvert, ustrip, inseconds, inHz, insamples
+export dB, ms, s, kHz, Hz, frames, uconvert, ustrip, inseconds, inHz, inframes
 
 const TimeDim = Unitful.Dimensions{(Unitful.Dimension{:Time}(1//1),)}
 const FreqDim = Unitful.Dimensions{(Unitful.Dimension{:Time}(-1//1),)}
 const Time{N} = Quantity{N,TimeDim}
 const Freq{N} = Quantity{N,FreqDim}
 
-@dimension 𝐒 "𝐒" Sample
-@refunit samples "samples" Samples 𝐒 false
-const SampDim = Unitful.Dimensions{(Unitful.Dimension{:Sample}(1//1),)}
-const SampleQuant{N} = Quantity{N,SampDim}
+@dimension 𝐅r "Fr" Frame
+@refunit frames "frames" Frames 𝐅r false
+const FrameDim = Unitful.Dimensions{(Unitful.Dimension{:Frame}(1//1),)}
+const FrameQuant{N} = Quantity{N,FrameDim}
 
-insamples{N <: Integer}(time::SampleQuant{N},rate) = ustrip(time)
-insamples{N}(time::SampleQuant{N},rate) =
-  error("Cannot use non-integer samples.")
-function insamples(time,rate)
+inframes{N <: Integer}(time::FrameQuant{N},rate) = ustrip(time)
+inframes{N}(time::FrameQuant{N},rate) =
+  error("Cannot use non-integer frames.")
+function inframes(time,rate)
   r = inHz(rate)
   floor(Int,ustrip(inseconds(time,r)*r))
 end
-function insamples{N,M}(time::Time{N},rate::Freq{M})
+function inframes{N,M}(time::Time{N},rate::Freq{M})
   floor(Int,ustrip(uconvert(s,time)*uconvert(Hz,rate)))
 end
 
@@ -34,14 +34,14 @@ function inHz(x::Number)
   x*Hz
 end
 
-inseconds(x::SampleQuant{N},R) where N = (ustrip(x) / R)*s
+inseconds(x::FrameQuant{N},R) where N = (ustrip(x) / R)*s
 inseconds(x::Time) = uconvert(s,x)
 inseconds(x::Quantity,R) = uconvert(s,x)
 inseconds(x::Number,R) = inseconds(x)
 inseconds(x::Quantity) =
   error("Expected second argument, specifying sample rate.")
 function inseconds(x::Number)
-  warn("Unitless value, assuming seconds. Append s, ms or samples to avoid",
+  warn("Unitless value, assuming seconds. Append s, ms or frames to avoid",
        " this warning (e.g. 500ms instead of 500)",
        bt=backtrace(),once=true,key=typeof(x))
   x*s
