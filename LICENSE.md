@@ -1,4 +1,4 @@
-The TimedSound.jl package is licensed under the MIT "Expat" License:
+The Sounds.jl package is licensed under the MIT "Expat" License:
 
 > Copyright (c) 2017: David Little.
 > 
@@ -21,7 +21,7 @@ The TimedSound.jl package is licensed under the MIT "Expat" License:
 > SOFTWARE.
 > 
 
-Modified portions of SampledSignals.jl are included in TimedSound:
+A few modified portions of SampledSignals.jl are included in Sounds.jl:
 
 > Copyright (c) 2015: Spencer Russell.
 
