@@ -184,10 +184,10 @@ function Sound(fn::Function,len=Inf,asseconds=true;
                offset=0s,rate=samplerate())
   rate_Hz = inHz(rate)
 
-  n = ustrip(nframes(offset,rate_Hz))
-  m = ustrip(nframes(len,rate_Hz))
+  n = ustrip(inframes(offset,rate_Hz))
+  m = ustrip(inframes(len,rate_Hz))
   R = floor(Int,ustrip(rate_Hz))
-  Sound(!asseconds ? fn(n+1:m) : fn(((n:m-1)-1)/R),rate=rate)
+  Sound(!asseconds ? fn(n+1:m) : fn((linspace(n,(m-1),m-n))/R),rate=rate)
 end
 
 
