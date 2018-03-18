@@ -15,14 +15,14 @@ using Sounds
 # create a pure tone 20 dB below a power 1 signal
 sound1 = tone(1kHz,5s) |> normpower |> amplify(-20dB)
 
-# create a sawtooth wave 
-sound2 = Sound(t -> 1000t .% 1,2s) |> normpower |> amplify(-20dB)
+# load a sound from a file, matching the power to that of sound1
+sound2 = Sound("mysound.wav") |> normpower |> amplify(-20dB)
+
+# create a 1kHz sawtooth wave 
+sound3 = Sound(t -> 1000t .% 1,2s) |> normpower |> amplify(-20dB)
 
 # create a 5Hz amplitude modulated noise
-sound3 = noise(2s) |> envelope(tone(5Hz,2s)) |> normpower |> amplify(-20dB)
-
-# load a sound from a file match the power to that of sound1
-sound4 = Sound("mysound.wav") |> normpower |> amplify(-20dB)
+sound4 = noise(2s) |> envelope(tone(5Hz,2s)) |> normpower |> amplify(-20dB)
 ```
 
 Sounds work much like arrays, and in addition to the normal ways of indexing an
@@ -48,7 +48,7 @@ is applied over the promoted representation.
 See the [documentation](https://haberdashPI.github.io/Sounds.jl/latest) for a complete
 description of available methods.
 
-Once you've created a sound you can use save it, or 
+Once you've created a sound you can use save it, or use
 [PortAudio.jl](https://github.com/JuliaAudio/PortAudio.jl) to play it.
 
 ```julia
@@ -71,12 +71,12 @@ For `SapmledSignals` vs. `Sounds`:
 1. `SampledSignals` does not include the various sound manipulation routines
    available in `Sounds`. This was the key motivation for the present package.
    The differences in the design of the `Sound` object were motivated by
-   making these manipulation routines easy to use.
-2. In `SampledSignals` automatic conversion is handled when with sinks
+   making these manipulation routines easy to use and implement.
+2. In `SampledSignals` automatic conversion is handled when with I/O sinks
    and sources. In `Sounds`, I use the standard type promotion mechanism.
 3. As of the last update to `Sounds`, `SampledSignals` package uses some out
    of date packages and has deprecation warnings for Julia v0.6. `Sounds`
-   uses some a more recent package for representing units and intervals of time.
+   uses some more recent packages for representing units and intervals of time.
 4. `SampledSignals` has a more ambitious scope, and seeks to represent many
    kinds of signals in multiple domains, not just sounds in their time-amplitude
    representation. 

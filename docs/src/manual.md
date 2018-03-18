@@ -34,7 +34,21 @@ For example, you can create 1kHz sawtooth wave like so:
 x = Sound(t -> 1000t .% 1,2s)
 ```
 
-All of the sound primitives are defined by passing a function to `Sound`.
+As shown above, unitful values are not employed within the fucntion (t is a
+range of `Float64` values not `Quantity{Float64}` values). A few helper
+functions are available to simplify the use of unitful values if you want to
+write your own custom functions that produce sounds. They are [`inHz`](@ref),
+[`inseconds`](@ref) and [`inframes`](@ref); they make sure the inputed unitful
+values are in a cannoncial form of Hertz, seconds or frames, respectively. Once
+in this form you can use `Unitful.jl`'s `ustrip` function to remove the
+units. For example, you could define a sawtooth function as follows:
+
+```julia
+sawtooth(freq,length) = Sound(t -> ustrip(inHz(freq)).*t .% 1,length)
+```
+
+All of the sound primitives defined in this package employ a similar strategy,
+passing some function of `t` to `Sound`.
 
 ## Using Arrays
 
@@ -72,7 +86,8 @@ mynoise = noise(1s) |> bandstop(0.5kHz,1.5kHz) |> normpower |>
 scene = mix(mytone,mynoise)
 ```
 
-Equivalently, if you do not want to take advantage of function currying, you could write this without using julia's `|>` operator, as follows:
+Equivalently, if you do not want to take advantage of function currying, you
+could write this without using julia's `|>` operator, as follows:
 
 ```julia
 SNR = 5dB
