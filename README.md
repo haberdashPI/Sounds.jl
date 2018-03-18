@@ -25,6 +25,17 @@ sound3 = Sound(t -> 1000t .% 1,2s) |> normpower |> amplify(-20dB)
 sound4 = noise(2s) |> envelope(tone(5Hz,2s)) |> normpower |> amplify(-20dB)
 ```
 
+Once you've created a sound you can use save it, or use
+[PortAudio.jl](https://github.com/JuliaAudio/PortAudio.jl) to play it.
+
+```julia
+sound1 = tone(1kHz,5s) |> normpower |> amplify(-20dB)
+save("puretone.wav",sound1)
+
+using PortAudio
+play(sound1)
+```
+
 Sounds work much like arrays, and in addition to the normal ways of indexing an
 array, you can access the channels by name (`:left` and `:right`) and you can
 access time slices using [Untiful.jl](https://github.com/ajkeller34/Unitful.jl)
@@ -47,17 +58,6 @@ is applied over the promoted representation.
 
 See the [documentation](https://haberdashPI.github.io/Sounds.jl/latest) for a complete
 description of available methods.
-
-Once you've created a sound you can use save it, or use
-[PortAudio.jl](https://github.com/JuliaAudio/PortAudio.jl) to play it.
-
-```julia
-sound1 = tone(1kHz,5s) |> normpower |> amplify(-20dB)
-save("puretone.wav",sound1)
-
-using PortAudio
-play(sound1)
-```
 
 # Alternative Solutions
 
