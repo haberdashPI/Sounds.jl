@@ -8,11 +8,9 @@ passing a function to [`Sound`](@ref) and converting an aribtrary
 
 ## Loading a file
 
-Using [`LibSndFile`](https://github.com/JuliaAudio/LibSndFile.jl) you can create
-sounds from files, like so:
+You can create sounds from files by passing a string or IO object to `Sound`, like so:
 
 ```julia
-using LibSndFile
 x = Sound("mysound_file.wav")
 ```
 
@@ -30,7 +28,7 @@ You can pass a function and a duration to [`Sound`](@ref) to define an aribtrary
 sound. The function will recieve a `Range` of `Float64` values representing the time in
 seconds. 
 
-For example, you can create a sawtooth wave like so:
+For example, you can create 1kHz sawtooth wave like so:
 
 ```julia
 x = Sound(t -> 1000t .% 1,2s)
@@ -115,16 +113,24 @@ following.
 mytone[7s .. ends]
 ```
 
-We can concatenate multiple sounds, to play them in sequence. The
+In addition to the normal time units available from untiful, a `frames` unit has been defined,
+which can be safely mixed with time units, like so:
+
+```julia
+mytone[0.1s .. 1000frames]
+```
+
+We can also concatenate multiple sounds, to play them in sequence. The
 following creates two tones in sequence, with a 100 ms gap between them.
 
 ```julia
 interval = [tone(400Hz,50ms); silence(100ms); tone(400Hz * 2^(5/12),50ms)]
 ```
 
-### Sounds as normal arrays
+### Sounds as plain arrays
 
-To represent a sound as a standard array (without copying any data), you may call its `Array` constructor.
+To represent a sound as a standard array (without copying any data), you may
+call its `Array` constructor.
 
 ```julia
 a = Array(mysound)
@@ -132,7 +138,8 @@ a = Array(mysound)
 
 ## Stereo Sounds
 
-You can create stereo sounds with [`leftright`](@ref), and reference the left and right channel using `:left` or `:right`, like so.
+You can create stereo sounds with [`leftright`](@ref), and reference the left
+and right channel using `:left` or `:right`, like so.
 
 ```julia
 stereo_sound = leftright(tone(1kHz,2s),tone(2kHz,2s))
@@ -191,7 +198,7 @@ Sampled at 44100 Hz
 
 # Using Sounds
 
-Once you've created a sound you can use save it, or 
+Once you've created a sound you can use save it, or use
 [PortAudio.jl](https://github.com/JuliaAudio/PortAudio.jl) to play it.
 
 ```julia

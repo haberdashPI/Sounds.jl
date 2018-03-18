@@ -15,7 +15,7 @@ irn
 samplerate
 set_default_samplerate!
 nchannels(::Sounds.Sound)
-nsamples(::Sounds.Sound)
+nframes(::Sounds.Sound)
 duration
 left
 right

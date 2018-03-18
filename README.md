@@ -22,7 +22,6 @@ sound2 = Sound(t -> 1000t .% 1,2s) |> normpower |> amplify(-20dB)
 sound3 = noise(2s) |> envelope(tone(5Hz,2s)) |> normpower |> amplify(-20dB)
 
 # load a sound from a file match the power to that of sound1
-using LibSndFile
 sound4 = Sound("mysound.wav") |> normpower |> amplify(-20dB)
 ```
 
@@ -49,14 +48,11 @@ is applied over the promoted representation.
 See the [documentation](https://haberdashPI.github.io/Sounds.jl/latest) for a complete
 description of available methods.
 
-Once you've created a sound you can use
-[LibSndFile.jl](https://github.com/JuliaAudio/LibSndFile.jl) to save it, or 
+Once you've created a sound you can use save it, or 
 [PortAudio.jl](https://github.com/JuliaAudio/PortAudio.jl) to play it.
 
 ```julia
 sound1 = tone(1kHz,5s) |> normpower |> amplify(-20dB)
-
-using LibSndFile
 save("puretone.wav",sound1)
 
 using PortAudio
@@ -76,15 +72,13 @@ For `SapmledSignals` vs. `Sounds`:
    available in `Sounds`. This was the key motivation for the present package.
    The differences in the design of the `Sound` object were motivated by
    making these manipulation routines easy to use.
-2. There are a number of automatic promotions that `Sounds` undergoe that
-   objects from `SampledSignals` do not undergoe. `SampledSignals` does modify
-   the format of sounds automatically in some cases, but this is handled through
-   a seperate mechanism as streams are written to various sinks.
+2. In `SampledSignals` automatic conversion is handled when with sinks
+   and sources. In `Sounds`, I use the standard type promotion mechanism.
 3. As of the last update to `Sounds`, `SampledSignals` package uses some out
    of date packages and has deprecation warnings for Julia v0.6. `Sounds`
    uses some a more recent package for representing units and intervals of time.
 4. `SampledSignals` has a more ambitious scope, and seeks to represent many
-   kinds of signals in multiple domains, not just sounds in their time/amplitude
+   kinds of signals in multiple domains, not just sounds in their time-amplitude
    representation. 
 
 For `AxisArray` vs. `Sounds`:
@@ -94,7 +88,7 @@ For `AxisArray` vs. `Sounds`:
    an `AxisArray`.
 3. Currently, the methods defined on an `AxisArray` are not defined for a `Sound`
    (e.g. axes, axisnames, etc...).
-4. Unlike indexing into a `Sound`, there is no `ends` defined for an `AxisArray`;
+4. Unlike indexing  into a `Sound`, there is no `ends` defined for an `AxisArray`;
    you must explicitly calculate the duration of the array when indexing by
    time.
 
@@ -107,4 +101,4 @@ these other types, or vice versa, by calling an appropriate constructor.
 in mind that `SampledSignals` exports some symbols that conflict with `Sounds`
 (e.g. last time I checked it uses an older approach for representing units and
 exports conflicting symbosl for these units), so it is probably best to `import`
-Sounds or SampledSignals and call `using` on the other.
+Sounds or SampledSignals and employ `using` on the other.
