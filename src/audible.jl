@@ -94,7 +94,7 @@ Creates a pure tone of the given frequency and length (in seconds).
 
 """
 function tone(freq,len=Inf;rate=samplerate(),phase=0.0)
-  Sound(t -> sin.(2π*t * ustrip(inHz(freq)) + phase),len,rate=rate)
+  Sound(t -> sin.(2π.*t .* ustrip(inHz(freq)) .+ phase),len,rate=rate)
 end
 
 function complex_cycle(f0,harmonics,amps,rate,phases)
