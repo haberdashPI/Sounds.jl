@@ -5,6 +5,7 @@ makedocs(
   sitename = "Sounds.jl",
   html_prettyurls = true,
   pages = [
+    "Introduction" => "index.md",
     "Manual" => "manual.md",
     "Reference" => "reference.md"
   ]

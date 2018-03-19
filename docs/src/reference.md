@@ -7,6 +7,9 @@ noise
 silence
 harmonic_complex
 irn
+inHz
+inframes
+inseconds
 ```
 
 # Interface

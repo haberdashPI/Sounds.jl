@@ -1,12 +1,11 @@
 # Sounds
 
 [![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](http://www.repostatus.org/badges/latest/active.svg)](http://www.repostatus.org/#active)
+[![TravisCI Status](https://travis-ci.org/haberdashPI/Sounds.jl.svg?branch=master)](https://travis-ci.org/haberdashPI/Sounds.jl)
 [![](https://img.shields.io/badge/docs-stable-blue.svg)](https://haberdashPI.github.io/Sounds.jl/stable)
 [![](https://img.shields.io/badge/docs-latest-blue.svg)](https://haberdashPI.github.io/Sounds.jl/latest)
-<!-- [![Build status](https://ci.appveyor.com/api/projects/status/uvxq5mqlq0p2ap02/branch/master?svg=true)](https://ci.appveyor.com/project/haberdashPI/weber-jl/branch/master) -->
-[![TravisCI Status](https://travis-ci.org/haberdashPI/Sounds.jl.svg?branch=master)](https://travis-ci.org/haberdashPI/Sounds.jl)
 
-Sounds is a package that aims to provide a clean interface for generating and manipulating sounds.
+Sounds is a [Julia](https://julialang.org/) package that aims to provide a clean interface for generating and manipulating sounds.
 
 ```julia
 using Sounds
@@ -71,7 +70,7 @@ For `SapmledSignals` vs. `Sounds`:
    available in `Sounds`. This was the key motivation for the present package.
    The differences in the design of the `Sound` object were motivated by
    making these manipulation routines easy to use and implement.
-2. In `SampledSignals` automatic conversion is handled when with I/O sinks
+2. In `SampledSignals` automatic conversion is handled with I/O sinks
    and sources. In `Sounds`, I use the standard type promotion mechanism.
 3. As of the last update to `Sounds`, `SampledSignals` package uses some out
    of date packages and has deprecation warnings for Julia v0.6. `Sounds`
