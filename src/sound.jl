@@ -471,11 +471,8 @@ end
 
 Create a stereo sound from two monaural sounds.
 """
-function leftright(x,y)
-  @assert(samplerate(x) == samplerate(y),
-          "Sounds had unmatched samplerates $(samplerate.((x,y))).")
+function leftright(x::T,y::T) where T <: Sound
   @assert size(x,2) == size(y,2) == 1 "Expected two monaural sounds."
-
   len = maximum(nframes.((x,y)))
   z = similar(x,(len,2))
   z .= zero(x[1])
@@ -483,3 +480,4 @@ function leftright(x,y)
   z[1:nframes(y),2] = y
   z
 end
+leftright(x,y) = leftright(promote(x,y)...)
