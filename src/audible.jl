@@ -276,7 +276,7 @@ function rampon(x::AbstractArray,length=5ms)
 	end
 	envelope(x,r)
 end
-rampon(length=5ms) = x -> rampon(x,length=length)
+rampon(length=5ms) = x -> rampon(x,length)
 
 """
     rampoff([sound],[length=5ms])
@@ -291,15 +291,9 @@ function rampoff(x::AbstractArray,length=5ms)
   after = nframes(x)
 
   R = ustrip(samplerate(x))
-  if !(0 < after <= nframes(x))
-    if len_s > nframes(x)
-      error("Cannot apply $(rounded_time(len_s/R,R)) ramp to",
-            " $(rounded_time(duration(x),R)) of audio.")
-    else
-      error("Cannot apply $(rounded_time(len_s/R,R)) ramp after ",
-            "$(rounded_time(after/R - len_s/R,R)) to",
-            " $(rounded_time(duration(x),R)) of audio.")
-    end
+  if len_s > nframes(x)
+    error("Cannot apply $(rounded_time(len_s/R,R)) ramp to",
+          " $(rounded_time(duration(x),R)) of audio.")
   end
 
   rampstart = (after - len_s)
@@ -308,7 +302,7 @@ function rampoff(x::AbstractArray,length=5ms)
 	end
 	envelope(x,r)
 end
-rampoff(length=5ms) = x -> rampon(x,length=length)
+rampoff(length=5ms) = x -> rampon(x,length)
 
 """
     fadeto([a],[b],[transition=50ms])

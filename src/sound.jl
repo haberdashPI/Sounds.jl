@@ -6,7 +6,7 @@ import DSP: resample
 import Base: setindex!, getindex
 
 export duration, nchannels, nframes, save, leftright, left, right,
-  .., ends, Sound, ismono, isstereo, asstereo, asmono
+  .., ends, Sound, ismono, isstereo, asstereo, asmono, resample
 
 @require SampledSignals begin
   import SampledSignals: nframes, nchannels
@@ -85,7 +85,7 @@ end
 
     resample(x::Sound,new_rate;warn=true)
 
-Returns a new sound representing `x` at the given sampling rate.
+Returns a new sound representing `x` at the given sampling rate (in Hertz).
 
 If you reduce the sampling rate, you will loose all frequencies in `x` that are
 above `new_rate/2`. Reducing the sampling rate will produce a warning unless
@@ -111,10 +111,6 @@ function resample(x::Sound,new_rate::Quantity;warn=true)
   else
     Sound(new_rate,1,T.(resample(x.data[:],new_rate // R)))
   end
-end
-
-function resample(x::Sound{R,T,C,N},new_rate::Real;warn=true) where {R,T,C,N}
-  resample(x,inHz(new_rate),warn=warn)
 end
 
 function Base.Array(x::Sound{R,T,C}) where {R,T,C}
@@ -194,12 +190,15 @@ end
 """
     duration(x;rate=samplerate(x))
 
-Returns the duration of the sound. If passed an `Array`, takes a
-keyword argument `rate=samplerate(x)`.
+Returns the duration of the sound.
+
+The rate keyword is only avaiable for generic array-like objects. It is an error
+to pass a different rate to this function for a `Sound`
 """
 function duration(x;rate=samplerate(x))
   uconvert(s,nframes(x) / inHz(rate))
 end
+duration(x::Sound{R}) where R = uconvert(s,nframes(x) / (R*Hz))
 
 rtype(::Type{<:Sound{R}}) where R = R
 rtype(x::Sound{R}) where {R} = R
@@ -262,14 +261,7 @@ function Base.:(*)(y::Sound,x::Number)
   z .= uconvertrp(unit(1),x) .* y
 end
 
-Base.:(/)(y::Sound,x::Number) = y * (1/unconvertrp(unit(1),x))
-
-"""
-    duration(x)
-
-Get the duration of the given sound in seconds.
-"""
-duration(x::Sound{R}) where R = uconvert(s,nframes(x) / (R*Hz))
+Base.:(/)(y::Sound,x::Number) = y * (1/uconvertrp(unit(1),x))
 
 """
     nchannels(sound)
@@ -288,6 +280,7 @@ The number of samples is not always the same as the `length` of the sound.
 Stereo sounds have a length of 2 x nframes(sound).
 """
 nframes(x::Sound) = size(x.data,1)
+nframes(x::AbstractArray) = size(x,1)
 
 """
     left(sound)
@@ -386,15 +379,15 @@ end
 end
 
 @inline @Base.propagate_inbounds setindex!(x::Sound,vals,js::Symbol) =
-  getindex(x,vals,:,js)
+  setindex!(x,vals,:,js)
 @inline @Base.propagate_inbounds function setindex!(x::Sound,vals,ixs,js::Symbol)
   if js == :left
     setindex!(x,vals,ixs,1)
   elseif js == :right
     if nchannels(x) == 1
-      getindex!(x,vals,ixs,1)
+      setindex!(x,vals,ixs,1)
     else
-      getindex!(x,vals,ixs,2)
+      setindex!(x,vals,ixs,2)
     end
   else
     throw(BoundsError(x,js))
@@ -403,7 +396,7 @@ end
 
 @inline function setindex!(x::Sound,i::Int,ixs::Union{AbstractVector,Colon})
   @boundscheck checkbounds(x.data,ixs)
-  getindex(x.data,i,ixs)
+  setindex!(x.data,i,ixs)
 end
 
 ########################################
@@ -451,11 +444,11 @@ getindex(x::StereoSound,interval::IntervalType) = getindex(x,asrange(x,interval)
 getindex(x::Sound,interval::IntervalType,js::Index) =
   getindex(x,asrange(x,interval),js)
 
-setindex!(x::MonoSound,vals::AbstractArray,interval::IntervalType) =
+setindex!(x::MonoSound,vals,interval::IntervalType) =
   setindex!(x,vals,asrange(x,interval))
-setindex!(x::StereoSound,vals::AbstractArray,interval::IntervalType) =
+setindex!(x::StereoSound,vals,interval::IntervalType) =
   setindex!(x,vals,asrange(x,interval),:)
-setindex!(x::Sound,vals::AbstractArray,interval::IntervalType,js::Index) =
+setindex!(x::Sound,vals,interval::IntervalType,js::Index) =
   setindex!(x,vals,asrange(x,interval),js)
 
 ########################################

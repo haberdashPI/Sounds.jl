@@ -50,12 +50,6 @@ inHz(x::Quantity) = uconvert(Hz,x)
 inHz(typ::Type{N},x::Q) where {N <: Number,Q <: Quantity} =
   floor(N,ustrip(inHz(x)))*Hz
 inHz(typ::Type{N},x::N) where {N <: Number} = inHz(x)
-function inHz(x::Number)
-  warn("Unitless value, assuming Hz. Append Hz or kHz to avoid this warning",
-       " (e.g. 1kHz instead of 1).",
-       bt=backtrace(),once=true,key=typeof(x))
-  x*Hz
-end
 
 """
    inseconds(quantity)
@@ -67,15 +61,9 @@ Translate a particular quantity (usually a time) to a value in seconds.
 0.05 s
 
 """
-inseconds(x::FrameQuant{N},R) where N = (ustrip(x) / R)*s
+inseconds(x::FrameQuant,R) = (ustrip(x) / R)*s
 inseconds(x::Time) = uconvert(s,x)
 inseconds(x::Quantity,R) = uconvert(s,x)
 inseconds(x::Number,R) = inseconds(x)
-inseconds(x::Quantity) =
+inseconds(x::FrameQuant) =
   error("Expected second argument, specifying sample rate.")
-function inseconds(x::Number)
-  warn("Unitless value, assuming seconds. Append s, ms or frames to avoid",
-       " this warning (e.g. 500ms instead of 500)",
-       bt=backtrace(),once=true,key=typeof(x))
-  x*s
-end
