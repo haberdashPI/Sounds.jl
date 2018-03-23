@@ -26,7 +26,7 @@ matrix:
 
 ## uncomment the following lines to override the default test script
 script:
- - julia -e 'Pkg.clone(pwd()); Pkg.build("Sounds"); Pkg.test("Sounds")'
+ - julia -e 'Pkg.clone(pwd()); Pkg.build("Sounds"); Pkg.test("Sounds",coverage=true)'
 after_success:
   - julia -e 'Pkg.add("Documenter")'
   - julia -e 'cd(Pkg.dir("Sounds")); include(joinpath("docs", "make.jl"))'

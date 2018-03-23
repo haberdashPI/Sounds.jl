@@ -2,6 +2,7 @@
 
 [![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](http://www.repostatus.org/badges/latest/active.svg)](http://www.repostatus.org/#active)
 [![TravisCI Status](https://travis-ci.org/haberdashPI/Sounds.jl.svg?branch=master)](https://travis-ci.org/haberdashPI/Sounds.jl)
+[![codecov](https://codecov.io/gh/haberdashPI/Sounds.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/haberdashPI/Sounds.jl)
 [![](https://img.shields.io/badge/docs-stable-blue.svg)](https://haberdashPI.github.io/Sounds.jl/stable)
 [![](https://img.shields.io/badge/docs-latest-blue.svg)](https://haberdashPI.github.io/Sounds.jl/latest)
 
