@@ -54,7 +54,7 @@ end
 Creates period of silence of the given length (in seconds).
 """
 function silence(length;rate=samplerate())
-  Sound(t -> fill(0.0,size(t)),length,false,rate=rate)
+  Sound(t -> fill(0.0,size(t)),length,asseconds=false,rate=rate)
 end
 
 """
@@ -74,7 +74,7 @@ modulated noise:
     sound = noise(duration(env)) |> envelope(env) |> normpower
 """
 function dc_offset(length;rate=samplerate())
-  Sound(t -> fill(1.0,size(t)),length,false,rate=rate)
+  Sound(t -> fill(1.0,size(t)),length,asseconds=false,rate=rate)
 end
 
 """
@@ -84,7 +84,7 @@ Creates a period of white noise of the given length (in seconds).
 
 """
 function noise(len;rate=samplerate(),rng=RandomDevice())
-  Sound(i -> 1.0-2.0rand(rng,length(i)),len,false,rate=rate)
+  Sound(i -> 1.0-2.0rand(rng,length(i)),len,asseconds=false,rate=rate)
 end
 
 """
@@ -132,7 +132,7 @@ function harmonic_complex(f0,harmonics,amps,len=Inf;
                         inHz(Int,rate),phases)
 
   N = size(cycle,1)
-  Sound(i -> cycle[(i.-1) .% N + 1],len,false,rate=rate)
+  Sound(i -> cycle[(i.-1) .% N + 1],len,asseconds=false,rate=rate)
 end
 
 """
@@ -245,7 +245,7 @@ function ramp(x::AbstractArray,length=5ms)
   end
 
   n = nframes(x)
-	r = Sound(n*frames,false,rate=samplerate(x)) do t
+	r = Sound(n*frames,asseconds=false,rate=samplerate(x)) do t
     ifelse.(t .< ramp_n,
       -0.5.*cos.(π.*t./ramp_n).+0.5,
     ifelse.(t .< n .- ramp_n,
@@ -271,7 +271,7 @@ function rampon(x::AbstractArray,length=5ms)
           "$(rounded_time(duration(x),samplerate(x))) sound.")
   end
 
-	r = Sound(ramp_n*frames,false,rate=samplerate(x)) do t
+	r = Sound(ramp_n*frames,asseconds=false,rate=samplerate(x)) do t
     -0.5.*cos.(π.*t./ramp_n).+0.5
 	end
 	envelope(x,r)
@@ -297,7 +297,7 @@ function rampoff(x::AbstractArray,length=5ms)
   end
 
   rampstart = (after - len_s)
-	r = Sound(after*frames,false,rate=samplerate(x)) do t
+	r = Sound(after*frames,asseconds=false,rate=samplerate(x)) do t
     ifelse.(t .< rampstart,1.0,-0.5.*cos.(π.*(t.-rampstart)./len_s.+π).+0.5)
 	end
 	envelope(x,r)

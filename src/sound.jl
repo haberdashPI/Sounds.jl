@@ -163,7 +163,7 @@ save(file::Union{AbstractString,IO},sound::Sound) =
 end
 
 """
-    Sound(fn,len,asseconds=true;rate=samplerate(),offset=0s)
+    Sound(fn,len;asseconds=true,rate=samplerate(),offset=0s)
 
 Creates monaural sound where `fn(t)` returns the amplitudes for a given `Range`
 of time points (in seconds as a `Float64`). The function `fn(t)` should return
@@ -176,7 +176,7 @@ sample indices (rather than time points).
 If `offset` is specified, return the section of the sound starting
 from `offset` (rather than starting from 0 seconds).
 """
-function Sound(fn::Function,len=Inf,asseconds=true;
+function Sound(fn::Function,len;asseconds=true,
                offset=0s,rate=samplerate())
   rate_Hz = inHz(rate)
 
