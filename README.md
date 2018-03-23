@@ -24,7 +24,7 @@ sound3 = Sound(t -> 1000t .% 1,2s) |> normpower |> amplify(-20dB)
 sound4 = noise(2s) |> envelope(tone(5Hz,2s)) |> normpower |> amplify(-20dB)
 ```
 
-Once you've created a sound you can use save it, or use
+Once you've created a sound you can save it, or use
 [PortAudio.jl](https://github.com/JuliaAudio/PortAudio.jl) to play it.
 
 ```julia
