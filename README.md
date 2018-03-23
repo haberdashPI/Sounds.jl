@@ -66,7 +66,7 @@ There are two other ways you might represent sounds in Julia,
 the ideas for this package came from these two packages (thanks!). Here are some
 of the ways that a `Sound` differs from these other solutions.
 
-For `SapmledSignals` vs. `Sounds`:
+For `SampledSignals` vs. `Sounds`:
 1. `SampledSignals` does not include the various sound manipulation routines
    available in `Sounds`. This was the key motivation for the present package.
    The differences in the design of the `Sound` object were motivated by
