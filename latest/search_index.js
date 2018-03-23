@@ -229,7 +229,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Reference",
     "title": "Sounds.duration",
     "category": "function",
-    "text": "duration(x;rate=samplerate(x))\n\nReturns the duration of the sound. If passed an Array, takes a keyword argument rate=samplerate(x).\n\n\n\nduration(x)\n\nGet the duration of the given sound in seconds.\n\n\n\n"
+    "text": "duration(x;rate=samplerate(x))\n\nReturns the duration of the sound.\n\nThe rate keyword is only avaiable for generic array-like objects. It is an error to pass a different rate to this function for a Sound\n\n\n\n"
 },
 
 {
@@ -405,7 +405,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Reference",
     "title": "DSP.Filters.resample",
     "category": "method",
-    "text": "resample(x::Sound,new_rate;warn=true)\n\nReturns a new sound representing x at the given sampling rate.\n\nIf you reduce the sampling rate, you will loose all frequencies in x that are above new_rate/2. Reducing the sampling rate will produce a warning unless warn is false.\n\n\n\n"
+    "text": "resample(x::Sound,new_rate;warn=true)\n\nReturns a new sound representing x at the given sampling rate (in Hertz).\n\nIf you reduce the sampling rate, you will loose all frequencies in x that are above new_rate/2. Reducing the sampling rate will produce a warning unless warn is false.\n\n\n\n"
 },
 
 {
