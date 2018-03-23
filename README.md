@@ -18,13 +18,20 @@ sound1 = tone(1kHz,5s) |> normpower |> amplify(-20dB)
 sound2 = Sound("mysound.wav") |> normpower |> amplify(-20dB)
 
 # create a 1kHz sawtooth wave 
-sound3 = Sound(t -> 1000t .% 1,2s) |> normpower |> amplify(-20dB)
+sound3 = Sound(t -> 1000t .% 1,2s) |> normpower
 
 # create a 5Hz amplitude modulated noise
-sound4 = noise(2s) |> envelope(tone(5Hz,2s)) |> normpower |> amplify(-20dB)
+sound4 = noise(2s) |> envelope(tone(5Hz,2s)) |> normpower
+
+# create 1kHz tone surroundinded by a notch noise
+SNR = 5dB
+x = tone(1kHz,1s) |> ramp |> normpower |> amplify(-20dB + SNR)
+y = noise(1s) |> bandstop(0.5kHz,2kHz) |> normpower |>
+  amplify(-20dB)
+scene = mix(x,y)
 ```
 
-Once you've created a sound you can save it, or use
+Once you've created a sound you can save it or use
 [PortAudio.jl](https://github.com/JuliaAudio/PortAudio.jl) to play it.
 
 ```julia
@@ -66,26 +73,25 @@ There are two other ways you might represent sounds in Julia,
 the ideas for this package came from these two packages (thanks!). Here are some
 of the ways that a `Sound` differs from these other solutions.
 
-For `SampledSignals` vs. `Sounds`:
+`SampledSignals` vs. `Sounds`:
 1. `SampledSignals` does not include the various sound manipulation routines
-   available in `Sounds`. This was the key motivation for the present package.
-   The differences in the design of the `Sound` object were motivated by
-   making these manipulation routines easy to use and implement.
+   available in `Sounds`. This was the primary motivation for the present package.
+   `Sound` objects were designed to make these manipulation routines easy to define.
 2. In `SampledSignals` automatic conversion is handled with I/O sinks
    and sources. In `Sounds`, I use the standard type promotion mechanism.
 3. As of the last update to `Sounds`, `SampledSignals` package uses some out
-   of date packages and has deprecation warnings for Julia v0.6. `Sounds`
+   of date packages and has been slow to update. `Sounds`
    uses some more recent packages for representing units and intervals of time.
 4. `SampledSignals` has a more ambitious scope, and seeks to represent many
    kinds of signals in multiple domains, not just sounds in their time-amplitude
    representation. 
 
-For `AxisArray` vs. `Sounds`:
+`AxisArray` vs. `Sounds`:
 1. An `AxisArray` must have its dimensions explicitly specified 
    during construction. `Sounds` knows what the axes for a sound should be.
 2. There is no automatic promotion of the sample rate or channel number when using
    an `AxisArray`.
-3. Currently, the methods defined on an `AxisArray` are not defined for a `Sound`
+3. The methods defined on an `AxisArray` are not defined for a `Sound`
    (e.g. axes, axisnames, etc...).
 4. Unlike indexing  into a `Sound`, there is no `ends` defined for an `AxisArray`;
    you must explicitly calculate the duration of the array when indexing by
