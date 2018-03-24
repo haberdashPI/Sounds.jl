@@ -79,9 +79,7 @@ of the ways that a `Sound` differs from these other solutions.
    `Sound` objects were designed to make these manipulation routines easy to define.
 2. In `SampledSignals` automatic conversion is handled with I/O sinks
    and sources. In `Sounds`, I use the standard type promotion mechanism.
-3. As of the last update to `Sounds`, `SampledSignals` package uses some out
-   of date packages and has been slow to update. `Sounds`
-   uses some more recent packages for representing units and intervals of time.
+3. `Sounds` uses more recent packages for representing units and intervals of time.
 4. `SampledSignals` has a more ambitious scope, and seeks to represent many
    kinds of signals in multiple domains, not just sounds in their time-amplitude
    representation. 
