@@ -105,3 +105,7 @@ in mind that `SampledSignals` exports some symbols that conflict with `Sounds`
 (e.g. last time I checked it uses an older approach for representing units and
 exports conflicting symbosl for these units), so it is probably best to `import`
 Sounds or SampledSignals and employ `using` on the other.
+
+# Status
+
+I use this package all the time in other projects, so it should be pretty bug free. However, it is not yet well integrated into the rest of the ecosystem in Julia for working with audio. I'm in the process of thinking through how to do that with this [issue](https://github.com/JuliaAudio/SampledSignals.jl/issues/29).
