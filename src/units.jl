@@ -1,5 +1,5 @@
 using Unitful
-import Unitful: ms, s, kHz, Hz, dB
+import Unitful: ms, s, kHz, Hz
 export dB, ms, s, kHz, Hz, frames, uconvert, ustrip, inseconds, inHz, inframes
 
 const TimeDim = Unitful.Dimensions{(Unitful.Dimension{:Time}(1//1),)}

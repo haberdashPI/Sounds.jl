@@ -201,7 +201,7 @@ end
              noise(1s,rng=rng()) |> bandpass(400Hz,800Hz))
   @test same(Sound("sounds/complex.wav"),
              harmonic_complex(200Hz,0:5,ones(6),1s) |> normpower |>
-             amplify(-20dB))
+             amplify(-10dB))
   normed = collect(1:10) |> normpower
   @test sqrt(mean(normed.^2)) ≈ 1
 end

@@ -334,7 +334,7 @@ which has the same effect as this function.
 With one positional argument, `ratio`, this returns a function f(x) which calls
 amplify(x,ratio).
 """
-amplify(x,ratio) = x*uconvertrp(unit(1),ratio)
+amplify(x,ratio) = x*ratio
 amplify(ratio) = x -> amplify(x,ratio)
 
 """

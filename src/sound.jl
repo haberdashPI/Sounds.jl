@@ -253,15 +253,15 @@ end
 
 function Base.:(*)(x::Number,y::Sound)
   z = similar(y)
-  z .= uconvertrp(unit(1),x) .* y
+  z .= x .* y
 end
 
 function Base.:(*)(y::Sound,x::Number)
   z = similar(y)
-  z .= uconvertrp(unit(1),x) .* y
+  z .= x .* y
 end
 
-Base.:(/)(y::Sound,x::Number) = y * (1/uconvertrp(unit(1),x))
+Base.:(/)(y::Sound,x::Number) = y * (1/x)
 
 """
     nchannels(sound)

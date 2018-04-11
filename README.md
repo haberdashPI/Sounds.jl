@@ -23,7 +23,7 @@ sound3 = Sound(t -> 1000t .% 1,2s) |> normpower
 # create a 5Hz amplitude modulated noise
 sound4 = noise(2s) |> envelope(tone(5Hz,2s)) |> normpower
 
-# create 1kHz tone surroundinded by a notch noise
+# create 1kHz tone surrounded by a notch noise
 SNR = 5dB
 x = tone(1kHz,1s) |> ramp |> normpower |> amplify(-20dB + SNR)
 y = noise(1s) |> bandstop(0.5kHz,2kHz) |> normpower |>
