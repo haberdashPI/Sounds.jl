@@ -1,10 +1,12 @@
 # Sounds
 
-[![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](http://www.repostatus.org/badges/latest/active.svg)](http://www.repostatus.org/#active)
+[![Project Status: Abandoned – Initial development has started, but there has not yet been a stable, usable release; the project has been abandoned and the author(s) do not intend on continuing development.](https://www.repostatus.org/badges/latest/abandoned.svg)](https://www.repostatus.org/#abandoned)
 [![TravisCI Status](https://travis-ci.org/haberdashPI/Sounds.jl.svg?branch=master)](https://travis-ci.org/haberdashPI/Sounds.jl)
 [![codecov](https://codecov.io/gh/haberdashPI/Sounds.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/haberdashPI/Sounds.jl)
 [![](https://img.shields.io/badge/docs-stable-blue.svg)](https://haberdashPI.github.io/Sounds.jl/stable)
 [![](https://img.shields.io/badge/docs-latest-blue.svg)](https://haberdashPI.github.io/Sounds.jl/latest)
+
+**NOTE**: This package is being renamed and move to a new repository [SignalOperators](https://github.com/haberdashPI/SignalOperators.jl). This version of the repository is for Julia 0.6 and lower. 
 
 Sounds is a [Julia](https://julialang.org/) package that aims to provide a clean interface for generating and manipulating sounds.
 
